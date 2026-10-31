@@ -2,7 +2,7 @@
   "name": "br-ia",
   "displayName": "br.ia",
   "description": "%description%",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "publisher": "br-ia",
   "license": "UNLICENSED",
@@ -43,6 +43,10 @@
         {
           "id": "bria.memory",
           "name": "%view.memory%"
+        },
+        {
+          "id": "bria.orders",
+          "name": "%view.orders%"
         },
         {
           "type": "webview",
@@ -196,6 +200,65 @@
         "title": "%command.memory.refresh%",
         "category": "br.ia",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "bria.linkFolder",
+        "title": "%command.linkFolder%",
+        "category": "br.ia",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "bria.unlinkFolder",
+        "title": "%command.unlinkFolder%",
+        "category": "br.ia"
+      },
+      {
+        "command": "bria.setPermissionMode",
+        "title": "%command.setPermissionMode%",
+        "category": "br.ia",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "bria.toggleLending",
+        "title": "%command.toggleLending%",
+        "category": "br.ia",
+        "icon": "$(vm-connect)"
+      },
+      {
+        "command": "bria.order.stop",
+        "title": "%command.order.stop%",
+        "category": "br.ia",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "bria.order.stopCurrent",
+        "title": "%command.order.stopCurrent%",
+        "category": "br.ia",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "bria.order.revert",
+        "title": "%command.order.revert%",
+        "category": "br.ia",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "bria.orders.refresh",
+        "title": "%command.orders.refresh%",
+        "category": "br.ia",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "bria.proposal.accept",
+        "title": "%command.proposal.accept%",
+        "category": "br.ia",
+        "icon": "$(check)"
+      },
+      {
+        "command": "bria.proposal.reject",
+        "title": "%command.proposal.reject%",
+        "category": "br.ia",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -287,6 +350,46 @@
         {
           "command": "bria.memory.refresh",
           "when": "bria.projectOpen"
+        },
+        {
+          "command": "bria.linkFolder",
+          "when": "false"
+        },
+        {
+          "command": "bria.unlinkFolder",
+          "when": "false"
+        },
+        {
+          "command": "bria.order.stop",
+          "when": "false"
+        },
+        {
+          "command": "bria.order.revert",
+          "when": "false"
+        },
+        {
+          "command": "bria.proposal.accept",
+          "when": "false"
+        },
+        {
+          "command": "bria.proposal.reject",
+          "when": "false"
+        },
+        {
+          "command": "bria.setPermissionMode",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.toggleLending",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.order.stopCurrent",
+          "when": "bria.cooking"
+        },
+        {
+          "command": "bria.orders.refresh",
+          "when": "bria.projectOpen"
         }
       ],
       "view/title": [
@@ -349,6 +452,26 @@
           "command": "bria.memory.refresh",
           "when": "view == bria.memory && bria.projectOpen",
           "group": "navigation@2"
+        },
+        {
+          "command": "bria.order.stopCurrent",
+          "when": "view == bria.orders && bria.cooking",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bria.setPermissionMode",
+          "when": "view == bria.orders && bria.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "bria.orders.refresh",
+          "when": "view == bria.orders && bria.projectOpen",
+          "group": "navigation@3"
+        },
+        {
+          "command": "bria.toggleLending",
+          "when": "view == bria.orders && bria.signedIn",
+          "group": "9_machine@1"
         }
       ],
       "view/item/context": [
@@ -384,7 +507,7 @@
         },
         {
           "command": "bria.archiveProject",
-          "when": "view == bria.teams && viewItem == project.chef",
+          "when": "view == bria.teams && viewItem =~ /^project\\.chef/",
           "group": "1_project@2"
         },
         {
@@ -421,6 +544,43 @@
           "command": "bria.memory.reveal",
           "when": "view == bria.memory && viewItem =~ /^memory./",
           "group": "2_show@1"
+        },
+        {
+          "command": "bria.linkFolder",
+          "when": "view == bria.teams && viewItem =~ /^project\\./",
+          "group": "2_folder@1"
+        },
+        {
+          "command": "bria.unlinkFolder",
+          "when": "view == bria.teams && viewItem =~ /^project\\..*\\.linked$/",
+          "group": "2_folder@2"
+        },
+        {
+          "command": "bria.order.stop",
+          "when": "view == bria.orders && viewItem =~ /stoppable/",
+          "group": "inline@1"
+        },
+        {
+          "command": "bria.order.stop",
+          "when": "view == bria.orders && viewItem =~ /stoppable/",
+          "group": "1_order@1"
+        },
+        {
+          "command": "bria.order.revert",
+          "when": "view == bria.orders && viewItem =~ /revertable/",
+          "group": "1_order@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "bria.proposal.accept",
+          "when": "resourceScheme == bria-proposal",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bria.proposal.reject",
+          "when": "resourceScheme == bria-proposal",
+          "group": "navigation@2"
         }
       ]
     },
@@ -436,6 +596,28 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "%config.notifyMentions%"
+        },
+        "bria.permissionMode": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "autoEdit",
+            "auto",
+            "plan"
+          ],
+          "enumDescriptions": [
+            "%config.permissionMode.manual%",
+            "%config.permissionMode.autoEdit%",
+            "%config.permissionMode.auto%",
+            "%config.permissionMode.plan%"
+          ],
+          "default": "manual",
+          "markdownDescription": "%config.permissionMode%"
+        },
+        "bria.lendMachine": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "%config.lendMachine%"
         }
       }
     },
@@ -459,6 +641,16 @@
         "view": "bria.memory",
         "contents": "%welcome.memoryEmpty%",
         "when": "bria.signedIn && bria.projectOpen && bria.memoryEmpty"
+      },
+      {
+        "view": "bria.orders",
+        "contents": "%welcome.ordersNoProject%",
+        "when": "bria.signedIn && !bria.projectOpen"
+      },
+      {
+        "view": "bria.orders",
+        "contents": "%welcome.ordersEmpty%",
+        "when": "bria.signedIn && bria.projectOpen && bria.ordersEmpty"
       }
     ]
   },

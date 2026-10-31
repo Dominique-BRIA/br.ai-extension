@@ -1,5 +1,6 @@
 import type { Member, Project, Team } from "@br-ia/protocol";
 import * as vscode from "vscode";
+import type { ProjectFolders } from "./cook/projectFolders";
 import type { WorkspaceStore } from "./workspaceStore";
 
 /** Les nœuds de l'arbre « Équipes ». `contextValue` pilote les menus contextuels. */
@@ -16,8 +17,14 @@ export class TeamsTreeProvider implements vscode.TreeDataProvider<TeamsNode>, vs
   readonly #subscription: vscode.Disposable;
   #openProjectId: string | undefined;
 
-  constructor(private readonly store: WorkspaceStore) {
-    this.#subscription = store.onDidChange(() => this.#onDidChangeTreeData.fire());
+  constructor(
+    private readonly store: WorkspaceStore,
+    private readonly folders: ProjectFolders,
+  ) {
+    this.#subscription = vscode.Disposable.from(
+      store.onDidChange(() => this.#onDidChangeTreeData.fire()),
+      folders.onDidChange(() => this.#onDidChangeTreeData.fire()),
+    );
   }
 
   /** Signale le projet ouvert dans le chat. */
@@ -57,8 +64,14 @@ export class TeamsTreeProvider implements vscode.TreeDataProvider<TeamsNode>, vs
         const item = new vscode.TreeItem(node.project.name, vscode.TreeItemCollapsibleState.None);
         item.id = `project:${node.project.id}`;
         item.iconPath = new vscode.ThemeIcon("comment-discussion");
-        item.description = node.project.id === this.#openProjectId ? vscode.l10n.t("open") : undefined;
-        item.contextValue = `project.${node.team.myRole}`;
+        const folder = this.folders.label(node.project.id);
+        item.description = [
+          node.project.id === this.#openProjectId ? vscode.l10n.t("open") : undefined,
+          folder ? vscode.l10n.t("folder: {0}", folder) : undefined,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        item.contextValue = `project.${node.team.myRole}${folder ? ".linked" : ""}`;
         item.command = { command: "bria.openProject", title: vscode.l10n.t("Open"), arguments: [node] };
         return item;
       }

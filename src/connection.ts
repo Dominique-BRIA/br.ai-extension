@@ -1,4 +1,5 @@
 import {
+  type ClientMessage,
   type MachineInfo,
   PROTOCOL_VERSION,
   parseServerMessage,
@@ -55,6 +56,13 @@ export class Connection implements vscode.Disposable {
     this.#wanted = true;
     this.#attempt = 0;
     this.#open();
+  }
+
+  /** Envoie un message au serveur ; renvoie faux si la connexion n'est pas établie. */
+  send(message: ClientMessage): boolean {
+    if (this.#state.status !== "connected" || !this.#socket) return false;
+    this.#socket.send(JSON.stringify(message));
+    return true;
   }
 
   disconnect(): void {
@@ -125,7 +133,10 @@ export class Connection implements vscode.Disposable {
         return;
       case "message.created":
       case "presence.changed":
+      case "memory.changed":
       case "workspace.changed":
+      case "tool.call":
+      case "order.updated":
         this.#onEvent.fire(message);
         return;
       case "error":

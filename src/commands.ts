@@ -10,6 +10,11 @@ import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import type { ChatViewProvider } from "./chatView";
 import type { Connection } from "./connection";
+import type { Checkpoints } from "./cook/checkpoints";
+import type { CookExecutor, PermissionMode } from "./cook/executor";
+import type { OrderNode, OrdersStore } from "./cook/orders";
+import type { ProjectFolders } from "./cook/projectFolders";
+import { ProposalReview } from "./cook/proposals";
 import type { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, type MemoryNode } from "./memoryView";
 import { type Session, signInFlow } from "./session";
@@ -23,13 +28,37 @@ interface Deps {
   store: WorkspaceStore;
   chat: ChatViewProvider;
   memory: MemoryStore;
+  folders: ProjectFolders;
+  orders: OrdersStore;
+  executor: CookExecutor;
+  proposals: ProposalReview;
+  checkpoints: Checkpoints;
   log: vscode.LogOutputChannel;
   machineId: string;
 }
 
 /** Enregistre les commandes de l'extension. Les erreurs du serveur sont affichées à la personne. */
 export function registerCommands(deps: Deps): vscode.Disposable[] {
-  const { api, session, connection, store, chat, memory, log } = deps;
+  const {
+    api,
+    session,
+    connection,
+    store,
+    chat,
+    memory,
+    log,
+    folders,
+    orders,
+    executor,
+    proposals,
+    checkpoints,
+  } = deps;
+
+  /** Proposition affichée dans l'onglet actif (vue avant/après). */
+  const activeProposal = () => {
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return input instanceof vscode.TabInputTextDiff ? ProposalReview.idOf(input.modified) : undefined;
+  };
 
   const setMemoryStatus = async (node: MemoryNode | undefined, status: "open" | "resolved" | "stopped") => {
     if (node?.kind !== "item") return;
@@ -194,6 +223,110 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       );
     }),
     command("bria.memory.refresh", () => memory.refresh()),
+
+    command("bria.linkFolder", async (node?: TeamsNode) => {
+      if (node?.kind !== "project") return;
+      const picked = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri,
+        openLabel: vscode.l10n.t("Use this folder"),
+        title: vscode.l10n.t("Folder of {0} on this machine", node.project.name),
+      });
+      const folder = picked?.[0];
+      if (!folder) return;
+      await folders.set(node.project.id, folder.fsPath);
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("The cook can now work on {0} in {1}.", node.project.name, folder.fsPath),
+      );
+    }),
+    command("bria.unlinkFolder", async (node?: TeamsNode) => {
+      if (node?.kind !== "project") return;
+      await folders.set(node.project.id, undefined);
+    }),
+
+    command("bria.setPermissionMode", async () => {
+      const settings = vscode.workspace.getConfiguration("bria");
+      const current = settings.get<PermissionMode>("permissionMode", "manual");
+      const modes: { label: string; detail: string; mode: PermissionMode }[] = [
+        {
+          label: vscode.l10n.t("Manual"),
+          detail: vscode.l10n.t("You approve each change (side-by-side view) and each command."),
+          mode: "manual",
+        },
+        {
+          label: vscode.l10n.t("Auto edit"),
+          detail: vscode.l10n.t("Changes are applied directly; you approve each command."),
+          mode: "autoEdit",
+        },
+        {
+          label: vscode.l10n.t("Auto"),
+          detail: vscode.l10n.t("Changes and commands run directly, except risky commands."),
+          mode: "auto",
+        },
+        {
+          label: vscode.l10n.t("Plan"),
+          detail: vscode.l10n.t("The cook reads and proposes, but changes nothing on this machine."),
+          mode: "plan",
+        },
+      ];
+      const picked = await vscode.window.showQuickPick(
+        modes.map((item) => ({
+          ...item,
+          description: item.mode === current ? vscode.l10n.t("current") : undefined,
+        })),
+        { title: vscode.l10n.t("What the cook may do on this machine") },
+      );
+      if (picked) await settings.update("permissionMode", picked.mode, vscode.ConfigurationTarget.Global);
+    }),
+
+    command("bria.toggleLending", async () => {
+      const settings = vscode.workspace.getConfiguration("bria");
+      const lending = !settings.get<boolean>("lendMachine", false);
+      await settings.update("lendMachine", lending, vscode.ConfigurationTarget.Global);
+      void vscode.window.showInformationMessage(
+        lending
+          ? vscode.l10n.t("Your machine is lent: the cook may work here on your teammates' orders.")
+          : vscode.l10n.t("Your machine is no longer lent: the cook only works here on your own orders."),
+      );
+    }),
+
+    command("bria.order.stop", async (node?: OrderNode) => {
+      if (node?.kind !== "order") return;
+      await api.post(`/orders/${node.order.id}/stop`);
+      await orders.refresh();
+    }),
+    command("bria.order.stopCurrent", async () => {
+      const orderId = executor.busyOrder;
+      if (!orderId) return;
+      proposals.rejectAll();
+      await api.post(`/orders/${orderId}/stop`);
+      executor.orderFinished(orderId);
+    }),
+    command("bria.order.revert", async (node?: OrderNode) => {
+      if (node?.kind !== "order") return;
+      const revert = vscode.l10n.t("Undo changes");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Undo the changes made by order {0} on this machine?", node.order.number),
+        { modal: true, detail: vscode.l10n.t("Each file goes back to its state before the order.") },
+        revert,
+      );
+      if (answer !== revert) return;
+      const files = await checkpoints.revert(node.order.id);
+      await orders.refresh();
+      void vscode.window.showInformationMessage(vscode.l10n.t("{0} file(s) restored.", files.length));
+    }),
+    command("bria.orders.refresh", () => orders.refresh()),
+
+    command("bria.proposal.accept", () => {
+      const id = activeProposal();
+      if (id) proposals.decide(id, true);
+    }),
+    command("bria.proposal.reject", () => {
+      const id = activeProposal();
+      if (id) proposals.decide(id, false);
+    }),
 
     command("bria.connect", () => connection.connect()),
     command("bria.disconnect", () => connection.disconnect()),

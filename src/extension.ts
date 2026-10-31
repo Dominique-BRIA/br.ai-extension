@@ -5,6 +5,11 @@ import { Api } from "./api";
 import { ChatViewProvider } from "./chatView";
 import { registerCommands } from "./commands";
 import { Connection } from "./connection";
+import { Checkpoints } from "./cook/checkpoints";
+import { CookExecutor } from "./cook/executor";
+import { OrdersStore, OrdersTreeProvider } from "./cook/orders";
+import { ProjectFolders } from "./cook/projectFolders";
+import { ProposalReview } from "./cook/proposals";
 import { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
 import { watchMentions } from "./notifications";
@@ -29,7 +34,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const store = new WorkspaceStore(api, connection, log);
   const memory = new MemoryStore(api, connection, log);
   const chat = new ChatViewProvider(context, api, session, connection, store, memory);
-  const teams = new TeamsTreeProvider(store);
+  const folders = new ProjectFolders(context, connection);
+  const teams = new TeamsTreeProvider(store, folders);
+  const proposals = new ProposalReview();
+  const checkpoints = new Checkpoints(vscode.Uri.joinPath(context.globalStorageUri, "checkpoints").fsPath);
+  const orders = new OrdersStore(api, connection, log);
+  const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId);
+  const executor = new CookExecutor(connection, folders, proposals, checkpoints, log, (id) =>
+    orders.describe(id),
+  );
   const memoryTree = new MemoryTreeProvider(memory, store);
   const memoryDocument = new MemoryDocumentProvider(memory, store);
 
@@ -64,19 +77,47 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     memory,
+    folders,
+    proposals,
+    orders,
+    ordersTree,
+    executor,
+    executor.onDidChangeBusy((orderId) =>
+      vscode.commands.executeCommand("setContext", "bria.cooking", Boolean(orderId)),
+    ),
+    orders.onDidFinish((order) => {
+      executor.orderFinished(order.id);
+      void ordersTree.refresh();
+    }),
+    vscode.window.registerTreeDataProvider("bria.orders", ordersTree),
     chat.onDidOpenProject((projectId) => {
       teams.setOpenProject(projectId);
       void memory.setProject(projectId);
+      void orders.setProject(projectId);
     }),
     memoryTree,
     memoryDocument,
     vscode.window.registerTreeDataProvider("bria.memory", memoryTree),
     vscode.workspace.registerTextDocumentContentProvider(MemoryDocumentProvider.scheme, memoryDocument),
-    createStatusBar(connection),
+    createStatusBar(connection, executor),
     vscode.window.registerTreeDataProvider("bria.teams", teams),
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chat),
     watchMentions(connection, session, store, chat),
-    ...registerCommands({ api, session, connection, store, chat, memory, log, machineId: machine.id }),
+    ...registerCommands({
+      api,
+      session,
+      connection,
+      store,
+      chat,
+      memory,
+      folders,
+      orders,
+      executor,
+      proposals,
+      checkpoints,
+      log,
+      machineId: machine.id,
+    }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("bria.serverUrl") && session.token) connection.connect();
     }),
@@ -84,7 +125,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   teams.setOpenProject(chat.openProjectId);
   await session.restore();
-  if (session.token) void memory.setProject(chat.openProjectId);
+  if (session.token) {
+    void memory.setProject(chat.openProjectId);
+    void orders.setProject(chat.openProjectId);
+  }
 }
 
 export function deactivate(): void {}

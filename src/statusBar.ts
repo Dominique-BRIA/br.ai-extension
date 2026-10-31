@@ -1,13 +1,21 @@
 import * as vscode from "vscode";
-import type { Connection, ConnectionState } from "./connection";
+import type { Connection } from "./connection";
+import type { CookExecutor } from "./cook/executor";
 
 /** Un seul élément br.ia dans la barre d'état, sans couleur personnalisée. */
-export function createStatusBar(connection: Connection): vscode.Disposable {
+export function createStatusBar(connection: Connection, executor: CookExecutor): vscode.Disposable {
   const item = vscode.window.createStatusBarItem("bria.status", vscode.StatusBarAlignment.Left, 50);
   item.name = "br.ia";
-  item.command = "workbench.view.extension.bria";
 
-  const render = (state: ConnectionState) => {
+  const render = () => {
+    const state = connection.state;
+    item.command = "workbench.view.extension.bria";
+    if (state.status === "connected" && executor.busyOrder) {
+      item.text = "$(tools) br.ia";
+      item.tooltip = vscode.l10n.t("The cook is working on this machine. Click to see the order.");
+      item.command = "bria.orders.focus";
+      return;
+    }
     switch (state.status) {
       case "connected":
         item.text = "$(check) br.ia";
@@ -28,8 +36,7 @@ export function createStatusBar(connection: Connection): vscode.Disposable {
     }
   };
 
-  render(connection.state);
+  render();
   item.show();
-  const subscription = connection.onDidChangeState(render);
-  return vscode.Disposable.from(item, subscription);
+  return vscode.Disposable.from(item, connection.onDidChangeState(render), executor.onDidChangeBusy(render));
 }

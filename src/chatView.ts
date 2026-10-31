@@ -244,8 +244,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const notes: Record<string, MemoryType[]> = {};
     for (const item of this.memory.items) {
       if (!item.sourceMessageId || item.status === "stopped") continue;
-      const types = (notes[item.sourceMessageId] ??= []);
+      const types = notes[item.sourceMessageId] ?? [];
       if (!types.includes(item.type)) types.push(item.type);
+      notes[item.sourceMessageId] = types;
     }
     return notes;
   }
