@@ -10,6 +10,8 @@ import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import type { ChatViewProvider } from "./chatView";
 import type { Connection } from "./connection";
+import type { MemoryStore } from "./memoryStore";
+import { MemoryDocumentProvider, type MemoryNode } from "./memoryView";
 import { type Session, signInFlow } from "./session";
 import type { TeamsNode } from "./teamsView";
 import type { WorkspaceStore } from "./workspaceStore";
@@ -20,13 +22,20 @@ interface Deps {
   connection: Connection;
   store: WorkspaceStore;
   chat: ChatViewProvider;
+  memory: MemoryStore;
   log: vscode.LogOutputChannel;
   machineId: string;
 }
 
 /** Enregistre les commandes de l'extension. Les erreurs du serveur sont affichées à la personne. */
 export function registerCommands(deps: Deps): vscode.Disposable[] {
-  const { api, session, connection, store, chat, log } = deps;
+  const { api, session, connection, store, chat, memory, log } = deps;
+
+  const setMemoryStatus = async (node: MemoryNode | undefined, status: "open" | "resolved" | "stopped") => {
+    if (node?.kind !== "item") return;
+    await api.patch(`/memory/${node.item.id}`, { status });
+    await memory.refresh();
+  };
 
   const command = (id: string, run: (...args: never[]) => Promise<unknown> | unknown) =>
     vscode.commands.registerCommand(id, async (...args: never[]) => {
@@ -156,6 +165,35 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       await session.clear();
       void vscode.window.showInformationMessage(vscode.l10n.t("Your account has been deleted."));
     }),
+
+    command("bria.memory.resolve", (node?: MemoryNode) => setMemoryStatus(node, "resolved")),
+    command("bria.memory.reopen", (node?: MemoryNode) => setMemoryStatus(node, "open")),
+    command("bria.memory.stop", async (node?: MemoryNode) => {
+      if (node?.kind !== "item") return;
+      const stop = vscode.l10n.t("Stop");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Stop this decision? The server agent will announce it in the chat."),
+        { modal: true, detail: node.item.text },
+        stop,
+      );
+      if (answer === stop) await setMemoryStatus(node, "stopped");
+    }),
+    command("bria.memory.reveal", async (node?: MemoryNode) => {
+      if (node?.kind !== "item" || !node.item.sourceMessageId) return;
+      if (!(await chat.reveal(node.item.sourceMessageId))) {
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t("This message is further back in the chat. Load older messages to see it."),
+        );
+      }
+    }),
+    command("bria.memory.openDocument", async () => {
+      if (!memory.projectId) return;
+      await vscode.commands.executeCommand(
+        "markdown.showPreview",
+        MemoryDocumentProvider.uri(memory.projectId),
+      );
+    }),
+    command("bria.memory.refresh", () => memory.refresh()),
 
     command("bria.connect", () => connection.connect()),
     command("bria.disconnect", () => connection.disconnect()),

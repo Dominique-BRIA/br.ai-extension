@@ -601,3 +601,33 @@ button.link:hover {
   margin: 4px 0;
   color: var(--vscode-errorForeground);
 }
+
+/* Ce que le serveur a noté à partir d'un message */
+
+.notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
+.notes li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message.highlight {
+  background: var(--vscode-editor-findMatchHighlightBackground, var(--vscode-list-activeSelectionBackground));
+  transition: background-color 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message.highlight {
+    transition: none;
+  }
+}

@@ -2,7 +2,7 @@
   "name": "br-ia",
   "displayName": "br.ia",
   "description": "%description%",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "publisher": "br-ia",
   "license": "UNLICENSED",
@@ -39,6 +39,10 @@
           "id": "bria.teams",
           "name": "%view.teams%",
           "icon": "media/bria.svg"
+        },
+        {
+          "id": "bria.memory",
+          "name": "%view.memory%"
         },
         {
           "type": "webview",
@@ -156,6 +160,42 @@
         "command": "bria.deleteAccount",
         "title": "%command.deleteAccount%",
         "category": "br.ia"
+      },
+      {
+        "command": "bria.memory.resolve",
+        "title": "%command.memory.resolve%",
+        "category": "br.ia",
+        "icon": "$(check)"
+      },
+      {
+        "command": "bria.memory.reopen",
+        "title": "%command.memory.reopen%",
+        "category": "br.ia",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "bria.memory.stop",
+        "title": "%command.memory.stop%",
+        "category": "br.ia",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "bria.memory.reveal",
+        "title": "%command.memory.reveal%",
+        "category": "br.ia",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "bria.memory.openDocument",
+        "title": "%command.memory.openDocument%",
+        "category": "br.ia",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "bria.memory.refresh",
+        "title": "%command.memory.refresh%",
+        "category": "br.ia",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -223,6 +263,30 @@
         {
           "command": "bria.deleteAccount",
           "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.memory.resolve",
+          "when": "false"
+        },
+        {
+          "command": "bria.memory.reopen",
+          "when": "false"
+        },
+        {
+          "command": "bria.memory.stop",
+          "when": "false"
+        },
+        {
+          "command": "bria.memory.reveal",
+          "when": "false"
+        },
+        {
+          "command": "bria.memory.openDocument",
+          "when": "bria.projectOpen"
+        },
+        {
+          "command": "bria.memory.refresh",
+          "when": "bria.projectOpen"
         }
       ],
       "view/title": [
@@ -275,6 +339,16 @@
           "command": "bria.showLog",
           "when": "view == bria.chat",
           "group": "9_log"
+        },
+        {
+          "command": "bria.memory.openDocument",
+          "when": "view == bria.memory && bria.projectOpen",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bria.memory.refresh",
+          "when": "view == bria.memory && bria.projectOpen",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -322,6 +396,31 @@
           "command": "bria.removeMember",
           "when": "view == bria.teams && viewItem == member.manageable",
           "group": "1_member@2"
+        },
+        {
+          "command": "bria.memory.resolve",
+          "when": "view == bria.memory && viewItem =~ /^memory.(question|task|compromise).open/",
+          "group": "inline@1"
+        },
+        {
+          "command": "bria.memory.resolve",
+          "when": "view == bria.memory && viewItem =~ /^memory.(question|task|compromise).open/",
+          "group": "1_memory@1"
+        },
+        {
+          "command": "bria.memory.reopen",
+          "when": "view == bria.memory && viewItem =~ /^memory.(question|task|compromise).resolved/",
+          "group": "1_memory@2"
+        },
+        {
+          "command": "bria.memory.stop",
+          "when": "view == bria.memory && viewItem =~ /^memory.decision.open.chef/",
+          "group": "1_memory@3"
+        },
+        {
+          "command": "bria.memory.reveal",
+          "when": "view == bria.memory && viewItem =~ /^memory./",
+          "group": "2_show@1"
         }
       ]
     },
@@ -350,6 +449,16 @@
         "view": "bria.teams",
         "contents": "%welcome.noTeams%",
         "when": "bria.signedIn && !bria.hasTeams"
+      },
+      {
+        "view": "bria.memory",
+        "contents": "%welcome.memoryNoProject%",
+        "when": "bria.signedIn && !bria.projectOpen"
+      },
+      {
+        "view": "bria.memory",
+        "contents": "%welcome.memoryEmpty%",
+        "when": "bria.signedIn && bria.projectOpen && bria.memoryEmpty"
       }
     ]
   },

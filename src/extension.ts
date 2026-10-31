@@ -5,6 +5,8 @@ import { Api } from "./api";
 import { ChatViewProvider } from "./chatView";
 import { registerCommands } from "./commands";
 import { Connection } from "./connection";
+import { MemoryStore } from "./memoryStore";
+import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
 import { watchMentions } from "./notifications";
 import { serverWsUrl } from "./server";
 import { Session } from "./session";
@@ -25,8 +27,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   const connection = new Connection(serverWsUrl, () => session.token, machine, log);
   const store = new WorkspaceStore(api, connection, log);
-  const chat = new ChatViewProvider(context, api, session, connection, store);
+  const memory = new MemoryStore(api, connection, log);
+  const chat = new ChatViewProvider(context, api, session, connection, store, memory);
   const teams = new TeamsTreeProvider(store);
+  const memoryTree = new MemoryTreeProvider(memory, store);
+  const memoryDocument = new MemoryDocumentProvider(memory, store);
 
   async function expireSession() {
     if (!session.token) return;
@@ -58,12 +63,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         store.clear();
       }
     }),
-    chat.onDidOpenProject((projectId) => teams.setOpenProject(projectId)),
+    memory,
+    chat.onDidOpenProject((projectId) => {
+      teams.setOpenProject(projectId);
+      void memory.setProject(projectId);
+    }),
+    memoryTree,
+    memoryDocument,
+    vscode.window.registerTreeDataProvider("bria.memory", memoryTree),
+    vscode.workspace.registerTextDocumentContentProvider(MemoryDocumentProvider.scheme, memoryDocument),
     createStatusBar(connection),
     vscode.window.registerTreeDataProvider("bria.teams", teams),
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chat),
     watchMentions(connection, session, store, chat),
-    ...registerCommands({ api, session, connection, store, chat, log, machineId: machine.id }),
+    ...registerCommands({ api, session, connection, store, chat, memory, log, machineId: machine.id }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("bria.serverUrl") && session.token) connection.connect();
     }),
@@ -71,6 +84,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   teams.setOpenProject(chat.openProjectId);
   await session.restore();
+  if (session.token) void memory.setProject(chat.openProjectId);
 }
 
 export function deactivate(): void {}

@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
-import type { ListMessagesResponse, Message } from "@br-ia/protocol";
+import type { ListMessagesResponse, MemoryType, Message } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import { openAttachment, pickAndUpload } from "./attachments";
 import type { Connection } from "./connection";
+import type { MemoryStore } from "./memoryStore";
 import type { Session } from "./session";
 import type { ChatStrings, ChatViewState, FromWebview, ToWebview } from "./webviewMessages";
 import type { WorkspaceStore } from "./workspaceStore";
@@ -29,10 +30,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     private readonly session: Session,
     private readonly connection: Connection,
     private readonly store: WorkspaceStore,
+    private readonly memory: MemoryStore,
   ) {
     this.#projectId = context.workspaceState.get<string>(OPEN_PROJECT_KEY);
     this.#subscriptions = [
       connection.onDidChangeState(() => this.#post()),
+      memory.onDidChange(() => this.#post()),
       connection.onEvent((event) => {
         if (event.type === "message.created" && event.message.projectId === this.#projectId) {
           this.#append(event.message);
@@ -72,6 +75,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#post();
     if (reveal) await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
     if (projectId) await this.#loadLatest();
+  }
+
+  /** Fait défiler le fil jusqu'à un message chargé ; renvoie faux s'il n'est pas chargé. */
+  async reveal(messageId: string): Promise<boolean> {
+    if (!this.#messages.some((message) => message.id === messageId)) return false;
+    await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+    this.#postRaw({ type: "reveal", messageId });
+    return true;
   }
 
   /** Vrai si la vue est visible et montre ce projet. */
@@ -225,7 +236,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       messages: this.#messages,
       hasMore: this.#hasMore,
       loadingOlder: this.#loadingOlder,
+      notes: this.#notes(),
     };
+  }
+
+  #notes(): Record<string, MemoryType[]> {
+    const notes: Record<string, MemoryType[]> = {};
+    for (const item of this.memory.items) {
+      if (!item.sourceMessageId || item.status === "stopped") continue;
+      const types = (notes[item.sourceMessageId] ??= []);
+      if (!types.includes(item.type)) types.push(item.type);
+    }
+    return notes;
   }
 
   #post(): void {
@@ -311,5 +333,11 @@ function chatStrings(): ChatStrings {
     removeAttachment: t("Remove attachment"),
     download: t("Save as…"),
     diagramError: t("This diagram could not be drawn."),
+    noted: {
+      decision: t("Decision noted"),
+      question: t("Open question noted"),
+      task: t("Task noted"),
+      compromise: t("Compromise proposed"),
+    },
   };
 }

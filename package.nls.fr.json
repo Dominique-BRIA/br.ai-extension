@@ -24,5 +24,14 @@
   "config.notifyMentions": "Afficher une notification quand un membre vous mentionne.",
   "command.editProfile": "Modifier mon profil",
   "command.manageMachines": "Gérer mes machines connectées",
-  "command.deleteAccount": "Supprimer mon compte"
+  "command.deleteAccount": "Supprimer mon compte",
+  "view.memory": "Mémoire du projet",
+  "welcome.memoryNoProject": "Ouvrez un projet pour voir sa mémoire.",
+  "welcome.memoryEmpty": "Rien de noté pour l'instant. L'agent serveur enregistre ici les décisions, questions ouvertes, tâches et compromis du chat.",
+  "command.memory.resolve": "Marquer comme résolu",
+  "command.memory.reopen": "Rouvrir",
+  "command.memory.stop": "Stopper la décision",
+  "command.memory.reveal": "Voir dans le chat",
+  "command.memory.openDocument": "Ouvrir la mémoire en document",
+  "command.memory.refresh": "Actualiser la mémoire"
 }

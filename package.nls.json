@@ -24,5 +24,14 @@
   "config.notifyMentions": "Show a notification when a teammate mentions you.",
   "command.editProfile": "Edit Profile",
   "command.manageMachines": "Manage Signed-In Machines",
-  "command.deleteAccount": "Delete Account"
+  "command.deleteAccount": "Delete Account",
+  "view.memory": "Project Memory",
+  "welcome.memoryNoProject": "Open a project to see its memory.",
+  "welcome.memoryEmpty": "Nothing noted yet. The server agent records here the decisions, open questions, tasks and compromises from the chat.",
+  "command.memory.resolve": "Mark as Resolved",
+  "command.memory.reopen": "Reopen",
+  "command.memory.stop": "Stop Decision",
+  "command.memory.reveal": "Show in Chat",
+  "command.memory.openDocument": "Open Memory as Document",
+  "command.memory.refresh": "Refresh Memory"
 }

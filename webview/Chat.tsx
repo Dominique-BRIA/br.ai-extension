@@ -1,6 +1,6 @@
-import type { Message } from "@br-ia/protocol";
-import { Fragment, useLayoutEffect, useRef, useState } from "react";
-import type { ChatStrings, ChatViewState } from "../src/webviewMessages";
+import type { MemoryType, Message } from "@br-ia/protocol";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessages";
 import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
 import { authorName, continuesPrevious, formatDay, formatTime, sameDay } from "./format";
@@ -8,6 +8,13 @@ import { Markdown } from "./Markdown";
 import { post } from "./vscodeApi";
 
 type ProjectState = Extract<ChatViewState, { view: "project" }>;
+
+const NOTE_ICONS: Record<MemoryType, string> = {
+  decision: "law",
+  question: "question",
+  task: "tasklist",
+  compromise: "git-merge",
+};
 
 interface Props {
   state: ProjectState;
@@ -37,6 +44,20 @@ export function Chat({ state, strings, locale, sentCount }: Props) {
     }
     previous.current = { first, last, height: element.scrollHeight, nearBottom: before.nearBottom };
   }, [state.messages]);
+
+  // Demande de l'extension (clic dans la mémoire) : aller au message et le signaler un instant.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      if (event.data.type !== "reveal") return;
+      const element = document.getElementById(`message-${event.data.messageId}`);
+      if (!element) return;
+      element.scrollIntoView({ block: "center" });
+      element.classList.add("highlight");
+      setTimeout(() => element.classList.remove("highlight"), 2000);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   const onScroll = () => {
     const element = list.current;
@@ -84,6 +105,7 @@ export function Chat({ state, strings, locale, sentCount }: Props) {
                 </h2>
               )}
               <article
+                id={`message-${message.id}`}
                 className={["message", grouped && "grouped", mentionsMe && "mentions-me", message.author.kind]
                   .filter(Boolean)
                   .join(" ")}
@@ -109,6 +131,16 @@ export function Chat({ state, strings, locale, sentCount }: Props) {
                 )}
                 {message.body && <Markdown text={message.body} diagramError={strings.diagramError} />}
                 <Attachments attachments={message.attachments} strings={strings} locale={locale} />
+                {state.notes[message.id] && (
+                  <ul className="notes">
+                    {state.notes[message.id]?.map((type) => (
+                      <li key={type}>
+                        <span className={`codicon codicon-${NOTE_ICONS[type]}`} aria-hidden="true" />
+                        {strings.noted[type]}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="message-actions">
                   <button
                     type="button"

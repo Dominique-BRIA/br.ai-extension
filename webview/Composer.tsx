@@ -17,6 +17,8 @@ interface Props {
   sentCount: number;
 }
 
+const BRIA: ChatMember = { userId: "bria", displayName: "bria" };
+
 /** Mention en cours de saisie : « @Ali » juste avant le curseur. */
 function mentionQuery(text: string, cursor: number): { start: number; query: string } | null {
   const match = /(^|\s)@([^\s@]{0,30})$/.exec(text.slice(0, cursor));
@@ -68,9 +70,12 @@ export function Composer(props: Props) {
   const suggestions = useMemo(() => {
     if (!mention) return [];
     const query = mention.query.toLowerCase();
-    return members
-      .filter((member) => member.userId !== myUserId && member.displayName.toLowerCase().includes(query))
-      .slice(0, 6);
+    // L'agent serveur se mentionne comme un membre : « @bria ».
+    const agent = BRIA.displayName.includes(query) ? [BRIA] : [];
+    const people = members.filter(
+      (member) => member.userId !== myUserId && member.displayName.toLowerCase().includes(query),
+    );
+    return [...agent, ...people].slice(0, 6);
   }, [mention, members, myUserId]);
 
   const insertMention = (member: ChatMember) => {
@@ -173,7 +178,10 @@ export function Composer(props: Props) {
                 insertMention(member);
               }}
             >
-              <span className="codicon codicon-account" aria-hidden="true" />
+              <span
+                className={`codicon codicon-${member === BRIA ? "comment-discussion" : "account"}`}
+                aria-hidden="true"
+              />
               {member.displayName}
             </button>
           ))}

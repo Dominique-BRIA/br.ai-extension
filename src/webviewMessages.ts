@@ -1,4 +1,4 @@
-import type { Attachment, Message } from "@br-ia/protocol";
+import type { Attachment, MemoryType, Message } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 
 /** Textes de l'interface, traduits côté extension puis transmis à la webview. */
@@ -34,6 +34,7 @@ export interface ChatStrings {
   removeAttachment: string;
   download: string;
   diagramError: string;
+  noted: Record<MemoryType, string>;
 }
 
 export interface ChatMember {
@@ -54,6 +55,8 @@ export type ChatViewState =
       messages: Message[];
       hasMore: boolean;
       loadingOlder: boolean;
+      /** Ce que le serveur a noté dans la mémoire à partir de chaque message. */
+      notes: Record<string, MemoryType[]>;
     };
 
 /** Extension → webview. */
@@ -68,7 +71,9 @@ export type ToWebview =
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
   | { type: "sendResult"; ok: boolean }
   /** Fichiers envoyés au serveur, à joindre au prochain message de ce projet. */
-  | { type: "attached"; projectId: string; attachments: Attachment[] };
+  | { type: "attached"; projectId: string; attachments: Attachment[] }
+  /** Faire défiler jusqu'à un message et le mettre en évidence. */
+  | { type: "reveal"; messageId: string };
 
 /** Webview → extension. */
 export type FromWebview =

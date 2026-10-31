@@ -1,7 +1,15 @@
 // Construit l'extension (Node) et la webview (navigateur) dans dist/.
 // Option --watch : reconstruit à chaque modification.
 // Voir scripts/esbuild.mjs pour la façon dont esbuild est lancé.
+import { existsSync, statSync } from "node:fs";
 import { esbuild } from "./esbuild.mjs";
+
+/** Vrai si `output` existe et est plus récent que toutes ses sources. */
+function upToDate(output, sources) {
+  if (!existsSync(output)) return false;
+  const built = statSync(output).mtimeMs;
+  return sources.every((source) => statSync(source).mtimeMs < built);
+}
 
 const watch = process.argv.includes("--watch");
 
@@ -47,4 +55,13 @@ const builds = [
   ],
 ];
 
-await Promise.all(builds.map((args) => esbuild([...args, ...shared])));
+// L'une après l'autre : plusieurs esbuild en parallèle échouent plus souvent (voir esbuild.mjs).
+for (const args of builds) {
+  if (
+    args[0] === "webview/mermaidEntry.ts" &&
+    upToDate("dist/mermaid.js", ["webview/mermaidEntry.ts", "node_modules/mermaid/package.json"])
+  ) {
+    continue;
+  }
+  await esbuild([...args, ...shared]);
+}

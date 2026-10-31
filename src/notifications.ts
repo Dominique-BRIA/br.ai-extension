@@ -18,7 +18,13 @@ export function watchMentions(
     if (event.type !== "message.created") return;
     const me = session.user?.id;
     const { message } = event;
-    if (!me || !message.mentions.includes(me)) return;
+    if (!me) return;
+    // Une mention, ou la réponse de l'agent serveur à l'un de mes messages.
+    const answersMe =
+      message.author.kind === "serveur" &&
+      message.replyTo?.author.kind === "member" &&
+      message.replyTo.author.userId === me;
+    if (!message.mentions.includes(me) && !answersMe) return;
     if (message.author.kind === "member" && message.author.userId === me) return;
     if (chat.isShowing(message.projectId) && vscode.window.state.focused) return;
 
@@ -27,10 +33,13 @@ export function watchMentions(
 
     const found = store.project(message.projectId);
     const author = message.author.kind === "member" ? message.author.displayName : "br.ia";
+    const project = found?.project.name ?? "br.ia";
     const open = vscode.l10n.t("Open");
     const never = vscode.l10n.t("Don't show again");
     const choice = await vscode.window.showInformationMessage(
-      vscode.l10n.t("{0} mentioned you in {1}.", author, found?.project.name ?? "br.ia"),
+      answersMe
+        ? vscode.l10n.t("br.ia answered you in {0}.", project)
+        : vscode.l10n.t("{0} mentioned you in {1}.", author, project),
       open,
       never,
     );
