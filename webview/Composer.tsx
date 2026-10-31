@@ -92,8 +92,21 @@ export function Composer(props: Props) {
   };
 
   const send = () => {
-    const body = text.trim();
-    if ((!body && pending.length === 0) || sending) return;
+    const typed = text.trim();
+    if ((!typed && pending.length === 0) || sending) return;
+    // Raccourcis « / » : une action locale, ou un message tout prêt pour l'agent serveur.
+    const slash = typed.toLowerCase();
+    if (slash === "/memoire" || slash === "/mémoire") {
+      setText("");
+      post({ type: "command", command: "openMemoryDocument" });
+      return;
+    }
+    if (slash === "/terminal") {
+      setText("");
+      post({ type: "command", command: "showCookTerminal" });
+      return;
+    }
+    const body = slash === "/statut" ? strings.quickStatusMessage : typed;
     // Mentions : les membres dont « @Nom » figure encore dans le texte.
     const mentions = members.filter((member) => body.includes(`@${member.displayName}`)).map((m) => m.userId);
     setSending(true);
@@ -193,30 +206,66 @@ export function Composer(props: Props) {
         locale={props.locale}
         onRemove={(removed) => setPending((current) => current.filter((item) => item.id !== removed.id))}
       />
+      <div className="quick-actions">
+        <button
+          type="button"
+          className="chip-button"
+          onClick={() => {
+            setSending(true);
+            post({ type: "send", body: strings.quickStatusMessage, mentions: [], attachmentIds: [] });
+          }}
+        >
+          <span className="slash">/</span>
+          {strings.quickStatus}
+        </button>
+        <button
+          type="button"
+          className="chip-button"
+          onClick={() => post({ type: "command", command: "openMemoryDocument" })}
+        >
+          <span className="codicon codicon-markdown" aria-hidden="true" />
+          {strings.quickMemory}
+        </button>
+        <button
+          type="button"
+          className="chip-button"
+          onClick={() => post({ type: "command", command: "showCookTerminal" })}
+        >
+          <span className="codicon codicon-terminal" aria-hidden="true" />
+          {strings.quickTerminal}
+        </button>
+      </div>
       <div className="composer-row">
         <button
           type="button"
-          className="icon-button attach-button"
+          className="attach-button"
           onClick={() => post({ type: "attach", pending: pending.length })}
           title={strings.attach}
           aria-label={strings.attach}
         >
           <span className="codicon codicon-attach" aria-hidden="true" />
         </button>
-        <textarea
-          ref={textarea}
-          value={text}
-          rows={1}
-          placeholder={strings.composerPlaceholder}
-          aria-label={strings.composerPlaceholder}
-          onChange={(event) => {
-            setText(event.target.value);
-            setCursor(event.target.selectionStart);
-            setSelected(0);
-          }}
-          onSelect={(event) => setCursor(event.currentTarget.selectionStart)}
-          onKeyDown={onKeyDown}
-        />
+        <div className="input-box">
+          <textarea
+            ref={textarea}
+            value={text}
+            rows={1}
+            placeholder={strings.composerPlaceholder}
+            aria-label={strings.composerPlaceholder}
+            onChange={(event) => {
+              setText(event.target.value);
+              setCursor(event.target.selectionStart);
+              setSelected(0);
+            }}
+            onSelect={(event) => setCursor(event.currentTarget.selectionStart)}
+            onKeyDown={onKeyDown}
+          />
+          {!text && (
+            <span className="slash-hint" aria-hidden="true">
+              /
+            </span>
+          )}
+        </div>
         <button
           type="button"
           className="send-button"

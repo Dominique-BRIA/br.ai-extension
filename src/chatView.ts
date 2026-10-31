@@ -4,20 +4,39 @@ import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import { openAttachment, pickAndUpload } from "./attachments";
 import type { Connection } from "./connection";
+import type { Checkpoints } from "./cook/checkpoints";
+import type { PermissionMode } from "./cook/executor";
+import type { OrdersStore } from "./cook/orders";
+import type { ProjectFolders } from "./cook/projectFolders";
 import type { MemoryStore } from "./memoryStore";
 import type { Session } from "./session";
-import type { ChatStrings, ChatViewState, FromWebview, ToWebview } from "./webviewMessages";
+import type { ChatStrings, ChatViewState, FromWebview, ToWebview, WebviewCommand } from "./webviewMessages";
 import type { WorkspaceStore } from "./workspaceStore";
 
 const OPEN_PROJECT_KEY = "bria.openProjectId";
 
-/** La vue « Chat » : le fil de discussion du projet ouvert. */
+export interface ChatSources {
+  api: Api;
+  session: Session;
+  connection: Connection;
+  store: WorkspaceStore;
+  memory: MemoryStore;
+  orders: OrdersStore;
+  folders: ProjectFolders;
+  checkpoints: Checkpoints;
+}
+
+/**
+ * Le panneau de br.ia : le fil de discussion du projet ouvert, sa mémoire et ses commandes.
+ * Il s'affiche dans sa vue (barre latérale de droite) et, sur demande, en grand dans un onglet.
+ */
 export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = "bria.chat";
 
   readonly #onDidOpenProject = new vscode.EventEmitter<string | undefined>();
   readonly onDidOpenProject = this.#onDidOpenProject.event;
   readonly #subscriptions: vscode.Disposable[];
+  readonly #sources: ChatSources;
   #view: vscode.WebviewView | undefined;
   /** Le chat ouvert en grand dans un onglet de l'éditeur. */
   #panel: vscode.WebviewPanel | undefined;
@@ -25,19 +44,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #messages: Message[] = [];
   #hasMore = false;
   #loadingOlder = false;
+  #revertable: string[] = [];
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly api: Api,
-    private readonly session: Session,
-    private readonly connection: Connection,
-    private readonly store: WorkspaceStore,
-    private readonly memory: MemoryStore,
+    sources: ChatSources,
   ) {
+    this.#sources = sources;
+    const { connection, store, memory, orders, folders, session } = sources;
     this.#projectId = context.workspaceState.get<string>(OPEN_PROJECT_KEY);
     this.#subscriptions = [
       connection.onDidChangeState(() => this.#post()),
       memory.onDidChange(() => this.#post()),
+      orders.onDidChange(() => void this.#refreshRevertable()),
+      folders.onDidChange(() => this.#post()),
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("bria.permissionMode")) this.#post();
+      }),
       connection.onEvent((event) => {
         if (event.type === "message.created" && event.message.projectId === this.#projectId) {
           this.#append(event.message);
@@ -75,20 +98,19 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     await this.context.workspaceState.update(OPEN_PROJECT_KEY, projectId);
     this.#onDidOpenProject.fire(projectId);
     this.#post();
-    if (reveal) await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+    if (reveal) await this.#reveal();
     if (projectId) await this.#loadLatest();
   }
 
   /** Fait défiler le fil jusqu'à un message chargé ; renvoie faux s'il n'est pas chargé. */
   async reveal(messageId: string): Promise<boolean> {
     if (!this.#messages.some((message) => message.id === messageId)) return false;
-    if (this.#panel) this.#panel.reveal();
-    else await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+    await this.#reveal();
     this.#postRaw({ type: "reveal", messageId });
     return true;
   }
 
-  /** Vrai si la vue est visible et montre ce projet. */
+  /** Vrai si le chat est visible et montre ce projet. */
   isShowing(projectId: string): boolean {
     return (Boolean(this.#view?.visible) || Boolean(this.#panel?.visible)) && this.#projectId === projectId;
   }
@@ -99,14 +121,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       this.#panel.reveal();
       return;
     }
-    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     const panel = vscode.window.createWebviewPanel("bria.chatPanel", "br.ia", vscode.ViewColumn.Active, {
       enableScripts: true,
-      localResourceRoots: [dist],
+      localResourceRoots: this.#roots(),
       retainContextWhenHidden: true,
     });
-    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "bria.svg");
-    panel.webview.html = this.#html(panel.webview, dist);
+    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "logo.png");
+    panel.webview.html = this.#html(panel.webview);
     this.#panel = panel;
     const subscriptions = [
       panel.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
@@ -122,9 +143,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.#view = view;
-    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
-    view.webview.options = { enableScripts: true, localResourceRoots: [dist] };
-    view.webview.html = this.#html(view.webview, dist);
+    view.webview.options = { enableScripts: true, localResourceRoots: this.#roots() };
+    view.webview.html = this.#html(view.webview);
 
     const subscriptions = [
       view.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
@@ -142,6 +162,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     for (const subscription of this.#subscriptions) subscription.dispose();
     this.#panel?.dispose();
     this.#onDidOpenProject.dispose();
+  }
+
+  async #reveal(): Promise<void> {
+    if (this.#panel) this.#panel.reveal();
+    else await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
   }
 
   async #onMessage(message: FromWebview): Promise<void> {
@@ -162,6 +187,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "loadOlder":
         await this.#loadOlder();
         return;
+      case "refresh":
+        await Promise.all([
+          this.#loadLatest(),
+          this.#sources.memory.refresh(),
+          this.#sources.orders.refresh(),
+          this.#sources.store.refresh(),
+        ]);
+        return;
       case "send":
         await this.#send(message.body, message.replyToId, message.mentions, message.attachmentIds);
         return;
@@ -169,18 +202,87 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         await this.#attach(message.pending);
         return;
       case "openAttachment":
-        await openAttachment(this.api, message.attachment, message.save).catch((error) =>
+        await openAttachment(this.#sources.api, message.attachment, message.save).catch((error) =>
           this.#reportError(error),
         );
         return;
+      case "memoryStatus": {
+        const item = this.#sources.memory.items.find((candidate) => candidate.id === message.itemId);
+        if (!item) return;
+        // L'arrêt d'une décision passe par la commande, qui demande confirmation.
+        if (message.status === "stopped") {
+          await vscode.commands.executeCommand("bria.memory.stop", { kind: "item", item });
+        } else {
+          await vscode.commands.executeCommand(
+            message.status === "open" ? "bria.memory.reopen" : "bria.memory.resolve",
+            { kind: "item", item },
+          );
+        }
+        return;
+      }
+      case "orderAction": {
+        const order = this.#sources.orders.orders.find((candidate) => candidate.id === message.orderId);
+        if (!order) return;
+        await vscode.commands.executeCommand(
+          message.action === "stop" ? "bria.order.stop" : "bria.order.revert",
+          { kind: "order", order },
+        );
+        return;
+      }
+      case "command":
+        await this.#runCommand(message.command);
+        return;
+    }
+  }
+
+  async #runCommand(command: WebviewCommand): Promise<void> {
+    switch (command) {
+      case "showCookTerminal":
+        await vscode.commands.executeCommand("bria.showCookTerminal");
+        return;
+      case "openMemoryDocument":
+        await vscode.commands.executeCommand("bria.memory.openDocument");
+        return;
+      case "setPermissionMode":
+        await vscode.commands.executeCommand("bria.setPermissionMode");
+        return;
+      case "openChatInEditor":
+        this.openInEditor();
+        return;
+      case "linkFolder": {
+        const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+        if (found) await vscode.commands.executeCommand("bria.linkFolder", { kind: "project", ...found });
+        return;
+      }
+      case "menu": {
+        const t = vscode.l10n.t;
+        const actions: { label: string; command: string }[] = [
+          {
+            label: `$(link-external) ${t("Open the chat in a large tab")}`,
+            command: "bria.openChatInEditor",
+          },
+          { label: `$(terminal) ${t("Show what the cook runs")}`, command: "bria.showCookTerminal" },
+          { label: `$(shield) ${t("Choose what the cook may do")}`, command: "bria.setPermissionMode" },
+          { label: `$(vm-connect) ${t("Lend / stop lending this machine")}`, command: "bria.toggleLending" },
+          {
+            label: `$(open-preview) ${t("Open the memory as a document")}`,
+            command: "bria.memory.openDocument",
+          },
+          { label: `$(person-add) ${t("Invite to the team")}`, command: "bria.invite" },
+          { label: `$(account) ${t("Edit my profile")}`, command: "bria.editProfile" },
+        ];
+        const picked = await vscode.window.showQuickPick(actions, { title: "br.ia" });
+        if (picked) await vscode.commands.executeCommand(picked.command);
+        return;
+      }
     }
   }
 
   async #loadLatest(): Promise<void> {
     const projectId = this.#projectId;
-    if (!projectId || !this.session.token) return;
+    if (!projectId || !this.#sources.session.token) return;
     try {
-      const page = await this.api.get<ListMessagesResponse>(`/projects/${projectId}/messages`);
+      const page = await this.#sources.api.get<ListMessagesResponse>(`/projects/${projectId}/messages`);
       if (projectId !== this.#projectId) return;
       this.#messages = page.messages;
       this.#hasMore = page.hasMore;
@@ -197,7 +299,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#loadingOlder = true;
     this.#post();
     try {
-      const page = await this.api.get<ListMessagesResponse>(
+      const page = await this.#sources.api.get<ListMessagesResponse>(
         `/projects/${projectId}/messages?before=${oldest.id}`,
       );
       if (projectId !== this.#projectId) return;
@@ -215,7 +317,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const projectId = this.#projectId;
     if (!projectId) return;
     try {
-      const attachments = await pickAndUpload(this.api, projectId, pending);
+      const attachments = await pickAndUpload(this.#sources.api, projectId, pending);
       if (attachments.length > 0) this.#postRaw({ type: "attached", projectId, attachments });
     } catch (error) {
       this.#reportError(error);
@@ -231,12 +333,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const projectId = this.#projectId;
     if (!projectId) return;
     try {
-      const { message } = await this.api.post<{ message: Message }>(`/projects/${projectId}/messages`, {
-        body,
-        replyToId,
-        mentions,
-        attachmentIds,
-      });
+      const { message } = await this.#sources.api.post<{ message: Message }>(
+        `/projects/${projectId}/messages`,
+        { body, replyToId, mentions, attachmentIds },
+      );
       this.#append(message);
       this.#postRaw({ type: "sendResult", ok: true });
     } catch (error) {
@@ -252,10 +352,20 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#post();
   }
 
+  async #refreshRevertable(): Promise<void> {
+    const revertable: string[] = [];
+    for (const order of this.#sources.orders.orders) {
+      if (await this.#sources.checkpoints.has(order.id)) revertable.push(order.id);
+    }
+    this.#revertable = revertable;
+    this.#post();
+  }
+
   #state(): ChatViewState {
-    const user = this.session.user;
-    if (!this.session.token || !user) return { view: "signedOut" };
-    const found = this.#projectId ? this.store.project(this.#projectId) : undefined;
+    const { session, store, memory, orders, folders } = this.#sources;
+    const user = session.user;
+    if (!session.token || !user) return { view: "signedOut" };
+    const found = this.#projectId ? store.project(this.#projectId) : undefined;
     if (!found) return { view: "noProject" };
     return {
       view: "project",
@@ -263,17 +373,26 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       projectName: found.project.name,
       teamName: found.team.name,
       myUserId: user.id,
+      isChef: found.team.myRole === "chef",
       members: found.team.members.map(({ userId, displayName }) => ({ userId, displayName })),
+      onlineCount: found.team.members.filter((member) => member.online).length,
       messages: this.#messages,
       hasMore: this.#hasMore,
       loadingOlder: this.#loadingOlder,
       notes: this.#notes(),
+      memory: memory.projectId === found.project.id ? memory.items : [],
+      orders: orders.orders.filter((order) => order.projectId === found.project.id),
+      revertable: this.#revertable,
+      folderLinked: Boolean(folders.get(found.project.id)),
+      permissionMode: vscode.workspace
+        .getConfiguration("bria")
+        .get<PermissionMode>("permissionMode", "manual"),
     };
   }
 
   #notes(): Record<string, MemoryType[]> {
     const notes: Record<string, MemoryType[]> = {};
-    for (const item of this.memory.items) {
+    for (const item of this.#sources.memory.items) {
       if (!item.sourceMessageId || item.status === "stopped") continue;
       const types = notes[item.sourceMessageId] ?? [];
       if (!types.includes(item.type)) types.push(item.type);
@@ -283,13 +402,20 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   #post(): void {
-    this.#postRaw({
-      type: "state",
-      state: this.#state(),
-      connection: this.connection.state,
-      strings: chatStrings(),
-      locale: vscode.env.language,
-    });
+    const webviews = [this.#view?.webview, this.#panel?.webview].filter((webview) => webview !== undefined);
+    for (const webview of webviews) {
+      const message: ToWebview = {
+        type: "state",
+        state: this.#state(),
+        connection: this.#sources.connection.state,
+        strings: chatStrings(),
+        locale: vscode.env.language,
+        logoUri: webview
+          .asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "logo.png"))
+          .toString(),
+      };
+      void webview.postMessage(message);
+    }
   }
 
   #postRaw(message: ToWebview): void {
@@ -302,7 +428,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     void vscode.window.showErrorMessage(text);
   }
 
-  #html(webview: vscode.Webview, dist: vscode.Uri): string {
+  #roots(): vscode.Uri[] {
+    return [
+      vscode.Uri.joinPath(this.context.extensionUri, "dist"),
+      vscode.Uri.joinPath(this.context.extensionUri, "media"),
+    ];
+  }
+
+  #html(webview: vscode.Webview): string {
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     const nonce = randomBytes(16).toString("base64");
     const script = webview.asWebviewUri(vscode.Uri.joinPath(dist, "webview.js"));
     const style = webview.asWebviewUri(vscode.Uri.joinPath(dist, "webview.css"));
@@ -352,7 +486,7 @@ function chatStrings(): ChatStrings {
     reply: t("Reply"),
     replyingTo: t("Replying to {0}"),
     cancelReply: t("Cancel reply"),
-    composerPlaceholder: t("Message"),
+    composerPlaceholder: t("Message to br.ia…"),
     composerHint: t("Enter to send, Shift+Enter for a new line"),
     send: t("Send"),
     today: t("Today"),
@@ -367,10 +501,59 @@ function chatStrings(): ChatStrings {
     download: t("Save as…"),
     diagramError: t("This diagram could not be drawn."),
     noted: {
-      decision: t("Decision noted"),
-      question: t("Open question noted"),
-      task: t("Task noted"),
+      decision: t("Decision noted in the project memory"),
+      question: t("Open question noted in the project memory"),
+      task: t("Task noted in the project memory"),
       compromise: t("Compromise proposed"),
     },
+    beta: t("BETA"),
+    online: t("{0}/{1} online"),
+    refresh: t("Refresh"),
+    more: t("More actions"),
+    tabChat: t("Chat"),
+    tabMemory: t("Memory"),
+    tabOrders: t("Orders"),
+    order: t("Order {0}"),
+    orderStatus: {
+      pending: t("waiting"),
+      running: t("in progress"),
+      done: t("done"),
+      failed: t("not completed"),
+      stopped: t("stopped"),
+    },
+    assignedTo: t("Assigned to: cook, on {0}'s machine"),
+    assignedNobody: t("Assigned to: cook, waiting for a machine"),
+    noFolder: t("No folder is linked to this project on this machine."),
+    linkFolder: t("Link a folder"),
+    stopOrder: t("Stop"),
+    revertOrder: t("Undo changes"),
+    showTerminal: t("Terminal"),
+    steps: t("Steps"),
+    noOrders: t(
+      "No order yet. Ask for a deliverable in the chat: the server agent passes the order to the cook.",
+    ),
+    mode: t("Mode: {0}"),
+    modes: { manual: t("Manual"), autoEdit: t("Auto edit"), auto: t("Auto"), plan: t("Plan") },
+    changeMode: t("Change"),
+    memoryGroups: {
+      decision: t("Decisions"),
+      question: t("Open questions"),
+      task: t("Tasks"),
+      compromise: t("Compromises under discussion"),
+      history: t("History"),
+    },
+    memoryStatus: { open: t("open"), resolved: t("resolved"), stopped: t("stopped") },
+    noMemory: t(
+      "Nothing noted yet. The server agent records here the decisions, open questions, tasks and compromises from the chat.",
+    ),
+    resolve: t("Mark as resolved"),
+    reopen: t("Reopen"),
+    stopDecision: t("Stop the decision"),
+    showInChat: t("Show in chat"),
+    openMemoryDocument: t("Open as document"),
+    quickStatus: t("status"),
+    quickStatusMessage: t("@bria where are the orders and tasks of the project?"),
+    quickMemory: t("Memory (.md)"),
+    quickTerminal: t("Cook terminal"),
   };
 }

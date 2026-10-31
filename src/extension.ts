@@ -34,12 +34,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const connection = new Connection(serverWsUrl, () => session.token, machine, log);
   const store = new WorkspaceStore(api, connection, log);
   const memory = new MemoryStore(api, connection, log);
-  const chat = new ChatViewProvider(context, api, session, connection, store, memory);
   const folders = new ProjectFolders(context, connection);
   const teams = new TeamsTreeProvider(store, folders);
   const proposals = new ProposalReview();
   const checkpoints = new Checkpoints(vscode.Uri.joinPath(context.globalStorageUri, "checkpoints").fsPath);
   const orders = new OrdersStore(api, connection, log);
+  const chat = new ChatViewProvider(context, {
+    api,
+    session,
+    connection,
+    store,
+    memory,
+    orders,
+    folders,
+    checkpoints,
+  });
   const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId, folders);
   const cookTerminal = new CookTerminal();
   const executor = new CookExecutor(connection, folders, proposals, checkpoints, cookTerminal, log, (id) =>

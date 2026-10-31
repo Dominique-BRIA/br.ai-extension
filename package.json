@@ -2,6 +2,7 @@
   "name": "br-ia",
   "displayName": "br.ia",
   "description": "%description%",
+  "icon": "media/logo.png",
   "version": "0.5.0",
   "private": true,
   "publisher": "br-ia",

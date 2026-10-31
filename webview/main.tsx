@@ -23,7 +23,7 @@ function App() {
   }, []);
 
   if (!snapshot) return null;
-  const { state, strings, connection, locale } = snapshot;
+  const { state, strings, connection, locale, logoUri } = snapshot;
 
   if (state.view === "signedOut") {
     return (
@@ -70,7 +70,14 @@ function App() {
   return (
     <>
       {banner}
-      <Chat state={state} strings={strings} locale={locale} sentCount={sentCount} />
+      <Chat
+        state={state}
+        strings={strings}
+        locale={locale}
+        logoUri={logoUri}
+        connected={connection.status === "connected"}
+        sentCount={sentCount}
+      />
     </>
   );
 }
