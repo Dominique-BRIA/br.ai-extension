@@ -1,0 +1,8 @@
+{
+  "description": "Chat d'équipe où l'IA note vos décisions, arbitre vos désaccords et construit sur vos machines.",
+  "view.chat": "Chat",
+  "command.connect": "Se connecter",
+  "command.disconnect": "Se déconnecter",
+  "command.showLog": "Afficher le journal",
+  "config.serverUrl": "Adresse du serveur br.ia (WebSocket)."
+}

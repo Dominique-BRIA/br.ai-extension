@@ -1,0 +1,8 @@
+{
+  "description": "Team chat where AI takes notes, settles disagreements and builds on your machines.",
+  "view.chat": "Chat",
+  "command.connect": "Connect",
+  "command.disconnect": "Disconnect",
+  "command.showLog": "Show log",
+  "config.serverUrl": "Address of the br.ia server (WebSocket)."
+}

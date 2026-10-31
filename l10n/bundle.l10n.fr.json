@@ -1,0 +1,14 @@
+{
+  "Connected to the br.ia server": "Connecté au serveur br.ia",
+  "Connecting to the br.ia server…": "Connexion au serveur br.ia…",
+  "Disconnected from the br.ia server": "Déconnecté du serveur br.ia",
+  "Not connected": "Non connecté",
+  "Connect to the br.ia server to join your team's chat.": "Connectez-vous au serveur br.ia pour rejoindre le chat de votre équipe.",
+  "Connecting…": "Connexion…",
+  "br.ia is reaching the server. It will keep retrying if the server is unavailable.": "br.ia contacte le serveur. Si le serveur ne répond pas, il réessaiera automatiquement.",
+  "Connected": "Connecté",
+  "This machine is connected to the br.ia server. Team chat arrives in the next version.": "Cette machine est connectée au serveur br.ia. Le chat d'équipe arrive dans la prochaine version.",
+  "Connection refused": "Connexion refusée",
+  "Connect": "Se connecter",
+  "Show log": "Afficher le journal"
+}

@@ -1,0 +1,118 @@
+{
+  "name": "br-ia",
+  "displayName": "br.ia",
+  "description": "%description%",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "br-ia",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dominique-BRIA/br.ai-extension.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "l10n": "./l10n",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bria",
+          "title": "br.ia",
+          "icon": "media/bria.svg"
+        }
+      ]
+    },
+    "views": {
+      "bria": [
+        {
+          "type": "webview",
+          "id": "bria.chat",
+          "name": "%view.chat%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "bria.connect",
+        "title": "%command.connect%",
+        "category": "br.ia",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "bria.disconnect",
+        "title": "%command.disconnect%",
+        "category": "br.ia",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "bria.showLog",
+        "title": "%command.showLog%",
+        "category": "br.ia",
+        "icon": "$(output)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "bria.connect",
+          "when": "view == bria.chat && bria.connectionState != connected",
+          "group": "navigation"
+        },
+        {
+          "command": "bria.disconnect",
+          "when": "view == bria.chat && bria.connectionState == connected",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "br.ia",
+      "properties": {
+        "bria.serverUrl": {
+          "type": "string",
+          "default": "ws://127.0.0.1:4000/ws",
+          "markdownDescription": "%config.serverUrl%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "check": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@br-ia/protocol": "file:../backend/packages/protocol",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "ws": "^8.22.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.4",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.2.3",
+    "@types/vscode": "1.95.0",
+    "@types/ws": "^8.18.1",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
