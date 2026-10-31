@@ -2,7 +2,7 @@
   "name": "br-ia",
   "displayName": "br.ia",
   "description": "%description%",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "publisher": "br-ia",
   "license": "UNLICENSED",
@@ -36,6 +36,11 @@
     "views": {
       "bria": [
         {
+          "id": "bria.teams",
+          "name": "%view.teams%",
+          "icon": "media/bria.svg"
+        },
+        {
           "type": "webview",
           "id": "bria.chat",
           "name": "%view.chat%"
@@ -43,6 +48,18 @@
       ]
     },
     "commands": [
+      {
+        "command": "bria.signIn",
+        "title": "%command.signIn%",
+        "category": "br.ia",
+        "icon": "$(account)"
+      },
+      {
+        "command": "bria.signOut",
+        "title": "%command.signOut%",
+        "category": "br.ia",
+        "icon": "$(sign-out)"
+      },
       {
         "command": "bria.connect",
         "title": "%command.connect%",
@@ -60,19 +77,207 @@
         "title": "%command.showLog%",
         "category": "br.ia",
         "icon": "$(output)"
+      },
+      {
+        "command": "bria.refresh",
+        "title": "%command.refresh%",
+        "category": "br.ia",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "bria.createTeam",
+        "title": "%command.createTeam%",
+        "category": "br.ia",
+        "icon": "$(add)"
+      },
+      {
+        "command": "bria.joinTeam",
+        "title": "%command.joinTeam%",
+        "category": "br.ia",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "bria.invite",
+        "title": "%command.invite%",
+        "category": "br.ia",
+        "icon": "$(person-add)"
+      },
+      {
+        "command": "bria.leaveTeam",
+        "title": "%command.leaveTeam%",
+        "category": "br.ia"
+      },
+      {
+        "command": "bria.createProject",
+        "title": "%command.createProject%",
+        "category": "br.ia",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "bria.openProject",
+        "title": "%command.openProject%",
+        "category": "br.ia"
+      },
+      {
+        "command": "bria.renameProject",
+        "title": "%command.renameProject%",
+        "category": "br.ia",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "bria.archiveProject",
+        "title": "%command.archiveProject%",
+        "category": "br.ia",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "bria.removeMember",
+        "title": "%command.removeMember%",
+        "category": "br.ia"
+      },
+      {
+        "command": "bria.transferChef",
+        "title": "%command.transferChef%",
+        "category": "br.ia"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "bria.openProject",
+          "when": "false"
+        },
+        {
+          "command": "bria.renameProject",
+          "when": "false"
+        },
+        {
+          "command": "bria.archiveProject",
+          "when": "false"
+        },
+        {
+          "command": "bria.removeMember",
+          "when": "false"
+        },
+        {
+          "command": "bria.transferChef",
+          "when": "false"
+        },
+        {
+          "command": "bria.signIn",
+          "when": "!bria.signedIn"
+        },
+        {
+          "command": "bria.signOut",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.createTeam",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.joinTeam",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.invite",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.leaveTeam",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.createProject",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.refresh",
+          "when": "bria.signedIn"
+        }
+      ],
       "view/title": [
         {
+          "command": "bria.createTeam",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bria.joinTeam",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "bria.refresh",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "bria.signOut",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "9_account"
+        },
+        {
           "command": "bria.connect",
-          "when": "view == bria.chat && bria.connectionState != connected",
+          "when": "view == bria.chat && bria.signedIn && bria.connectionState != connected",
           "group": "navigation"
         },
         {
           "command": "bria.disconnect",
           "when": "view == bria.chat && bria.connectionState == connected",
           "group": "navigation"
+        },
+        {
+          "command": "bria.showLog",
+          "when": "view == bria.chat",
+          "group": "9_log"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "bria.createProject",
+          "when": "view == bria.teams && viewItem =~ /^team./",
+          "group": "inline@1"
+        },
+        {
+          "command": "bria.invite",
+          "when": "view == bria.teams && viewItem == team.chef",
+          "group": "inline@2"
+        },
+        {
+          "command": "bria.createProject",
+          "when": "view == bria.teams && viewItem =~ /^team./",
+          "group": "1_team@1"
+        },
+        {
+          "command": "bria.invite",
+          "when": "view == bria.teams && viewItem == team.chef",
+          "group": "1_team@2"
+        },
+        {
+          "command": "bria.leaveTeam",
+          "when": "view == bria.teams && viewItem == team.membre",
+          "group": "9_leave"
+        },
+        {
+          "command": "bria.renameProject",
+          "when": "view == bria.teams && viewItem =~ /^project./",
+          "group": "1_project@1"
+        },
+        {
+          "command": "bria.archiveProject",
+          "when": "view == bria.teams && viewItem == project.chef",
+          "group": "1_project@2"
+        },
+        {
+          "command": "bria.transferChef",
+          "when": "view == bria.teams && viewItem == member.manageable",
+          "group": "1_member@1"
+        },
+        {
+          "command": "bria.removeMember",
+          "when": "view == bria.teams && viewItem == member.manageable",
+          "group": "1_member@2"
         }
       ]
     },
@@ -81,11 +286,28 @@
       "properties": {
         "bria.serverUrl": {
           "type": "string",
-          "default": "ws://127.0.0.1:4000/ws",
+          "default": "http://127.0.0.1:4000",
           "markdownDescription": "%config.serverUrl%"
+        },
+        "bria.notifyMentions": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.notifyMentions%"
         }
       }
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "bria.teams",
+        "contents": "%welcome.signedOut%",
+        "when": "!bria.signedIn"
+      },
+      {
+        "view": "bria.teams",
+        "contents": "%welcome.noTeams%",
+        "when": "bria.signedIn && !bria.hasTeams"
+      }
+    ]
   },
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -98,8 +320,12 @@
   },
   "dependencies": {
     "@br-ia/protocol": "file:../backend/packages/protocol",
+    "@vscode/codicons": "^0.0.46-24",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "ws": "^8.22.1",
     "zod": "^4.6.7"
   },

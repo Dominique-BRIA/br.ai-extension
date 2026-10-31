@@ -1,19 +1,38 @@
 import { randomUUID } from "node:crypto";
 import type { MachineInfo } from "@br-ia/protocol";
 import * as vscode from "vscode";
+import { Api } from "./api";
 import { ChatViewProvider } from "./chatView";
+import { registerCommands } from "./commands";
 import { Connection } from "./connection";
+import { watchMentions } from "./notifications";
+import { serverWsUrl } from "./server";
+import { Session } from "./session";
 import { createStatusBar } from "./statusBar";
+import { TeamsTreeProvider } from "./teamsView";
+import { WorkspaceStore } from "./workspaceStore";
 
 const MACHINE_ID_KEY = "bria.machineId";
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const log = vscode.window.createOutputChannel("br.ia", { log: true });
-  const connection = new Connection(
-    () => vscode.workspace.getConfiguration("bria").get<string>("serverUrl", "ws://127.0.0.1:4000/ws"),
-    machineInfo(context),
-    log,
+  const machine = machineInfo(context);
+  const session = new Session(context);
+
+  const api = new Api(
+    () => session.token,
+    () => void expireSession(),
   );
+  const connection = new Connection(serverWsUrl, () => session.token, machine, log);
+  const store = new WorkspaceStore(api, connection, log);
+  const chat = new ChatViewProvider(context, api, session, connection, store);
+  const teams = new TeamsTreeProvider(store);
+
+  async function expireSession() {
+    if (!session.token) return;
+    await session.clear();
+    void vscode.window.showWarningMessage(vscode.l10n.t("Your br.ia session has expired. Sign in again."));
+  }
 
   const updateContext = () =>
     vscode.commands.executeCommand("setContext", "bria.connectionState", connection.state.status);
@@ -21,24 +40,37 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     log,
+    session,
     connection,
+    store,
+    chat,
+    teams,
     connection.onDidChangeState(updateContext),
-    createStatusBar(connection),
-    vscode.window.registerWebviewViewProvider(
-      ChatViewProvider.viewId,
-      new ChatViewProvider(context.extensionUri, connection),
-    ),
-    vscode.commands.registerCommand("bria.connect", () => connection.connect()),
-    vscode.commands.registerCommand("bria.disconnect", () => connection.disconnect()),
-    vscode.commands.registerCommand("bria.showLog", () => log.show()),
-    vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("bria.serverUrl") && connection.state.status !== "disconnected") {
+    connection.onFailure((reason) => {
+      if (reason === "unauthenticated") void expireSession();
+    }),
+    session.onDidChange((user) => {
+      if (user) {
         connection.connect();
+        void store.refresh();
+      } else {
+        connection.disconnect();
+        store.clear();
       }
+    }),
+    chat.onDidOpenProject((projectId) => teams.setOpenProject(projectId)),
+    createStatusBar(connection),
+    vscode.window.registerTreeDataProvider("bria.teams", teams),
+    vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chat),
+    watchMentions(connection, session, store, chat),
+    ...registerCommands({ api, session, connection, store, chat, log, machineId: machine.id }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("bria.serverUrl") && session.token) connection.connect();
     }),
   );
 
-  connection.connect();
+  teams.setOpenProject(chat.openProjectId);
+  await session.restore();
 }
 
 export function deactivate(): void {}

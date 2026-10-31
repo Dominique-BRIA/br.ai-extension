@@ -1,20 +1,74 @@
+import type { Message } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 
 /** Textes de l'interface, traduits côté extension puis transmis à la webview. */
-export interface WebviewStrings {
-  disconnectedTitle: string;
-  disconnectedBody: string;
-  connectingTitle: string;
-  connectingBody: string;
-  connectedTitle: string;
-  connectedBody: string;
-  failedTitle: string;
+export interface ChatStrings {
+  signedOutTitle: string;
+  signedOutBody: string;
+  signIn: string;
+  noProjectTitle: string;
+  noProjectBody: string;
+  emptyChatTitle: string;
+  emptyChatBody: string;
+  connecting: string;
+  disconnected: string;
   connect: string;
   showLog: string;
+  loadOlder: string;
+  loading: string;
+  reply: string;
+  replyingTo: string;
+  cancelReply: string;
+  composerPlaceholder: string;
+  composerHint: string;
+  send: string;
+  today: string;
+  yesterday: string;
+  formerMember: string;
+  serveur: string;
+  cuisinier: string;
+  mentionsYou: string;
+  /** Modèle « {0} (vous) » pour ses propres messages. */
+  you: string;
 }
 
+export interface ChatMember {
+  userId: string;
+  displayName: string;
+}
+
+export type ChatViewState =
+  | { view: "signedOut" }
+  | { view: "noProject" }
+  | {
+      view: "project";
+      projectId: string;
+      projectName: string;
+      teamName: string;
+      myUserId: string;
+      members: ChatMember[];
+      messages: Message[];
+      hasMore: boolean;
+      loadingOlder: boolean;
+    };
+
 /** Extension → webview. */
-export type ToWebview = { type: "state"; state: ConnectionState; strings: WebviewStrings };
+export type ToWebview =
+  | {
+      type: "state";
+      state: ChatViewState;
+      connection: ConnectionState;
+      strings: ChatStrings;
+      locale: string;
+    }
+  /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
+  | { type: "sendResult"; ok: boolean };
 
 /** Webview → extension. */
-export type FromWebview = { type: "ready" } | { type: "connect" } | { type: "showLog" };
+export type FromWebview =
+  | { type: "ready" }
+  | { type: "signIn" }
+  | { type: "connect" }
+  | { type: "showLog" }
+  | { type: "loadOlder" }
+  | { type: "send"; body: string; replyToId?: string; mentions: string[] };

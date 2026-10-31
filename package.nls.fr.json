@@ -1,8 +1,25 @@
 {
   "description": "Chat d'équipe où l'IA note vos décisions, arbitre vos désaccords et construit sur vos machines.",
+  "view.teams": "Équipes",
   "view.chat": "Chat",
-  "command.connect": "Se connecter",
-  "command.disconnect": "Se déconnecter",
+  "welcome.signedOut": "Connectez-vous pour rejoindre le chat de votre équipe.\n[Se connecter](command:bria.signIn)\nbr.ia est en bêta privée : il faut un code d'invitation pour créer un compte.",
+  "welcome.noTeams": "Vous ne faites encore partie d'aucune équipe.\n[Créer une équipe](command:bria.createTeam)\n[Rejoindre une équipe](command:bria.joinTeam)\nPour rejoindre une équipe, demandez un code d'invitation à son chef.",
+  "command.signIn": "Se connecter",
+  "command.signOut": "Se déconnecter",
+  "command.connect": "Se reconnecter au serveur",
+  "command.disconnect": "Se déconnecter du serveur",
   "command.showLog": "Afficher le journal",
-  "config.serverUrl": "Adresse du serveur br.ia (WebSocket)."
+  "command.refresh": "Actualiser",
+  "command.createTeam": "Créer une équipe",
+  "command.joinTeam": "Rejoindre une équipe",
+  "command.invite": "Inviter dans l'équipe",
+  "command.leaveTeam": "Quitter l'équipe",
+  "command.createProject": "Nouveau projet",
+  "command.openProject": "Ouvrir le projet",
+  "command.renameProject": "Renommer le projet",
+  "command.archiveProject": "Archiver le projet",
+  "command.removeMember": "Retirer de l'équipe",
+  "command.transferChef": "Nommer chef d'équipe",
+  "config.serverUrl": "Adresse du serveur br.ia.",
+  "config.notifyMentions": "Afficher une notification quand un membre vous mentionne."
 }

@@ -1,53 +1,83 @@
+import "@vscode/codicons/dist/codicon.css";
+import "./styles.css";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { FromWebview, ToWebview } from "../src/webviewMessages";
-import "./styles.css";
+import type { ToWebview } from "../src/webviewMessages";
+import { Chat } from "./Chat";
+import { post } from "./vscodeApi";
 
-declare function acquireVsCodeApi(): { postMessage(message: FromWebview): void };
-const vscode = acquireVsCodeApi();
+type Snapshot = Extract<ToWebview, { type: "state" }>;
 
 function App() {
-  const [snapshot, setSnapshot] = useState<ToWebview | null>(null);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [sentCount, setSentCount] = useState(0);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<ToWebview>) => {
       if (event.data.type === "state") setSnapshot(event.data);
+      if (event.data.type === "sendResult" && event.data.ok) setSentCount((count) => count + 1);
     };
     window.addEventListener("message", onMessage);
-    vscode.postMessage({ type: "ready" });
+    post({ type: "ready" });
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
   if (!snapshot) return null;
-  const { state, strings } = snapshot;
+  const { state, strings, connection, locale } = snapshot;
 
-  switch (state.status) {
-    case "connected":
-      return <Panel title={strings.connectedTitle} body={strings.connectedBody} />;
-    case "connecting":
-      return <Panel title={strings.connectingTitle} body={strings.connectingBody} busy />;
-    case "disconnected":
-      return (
-        <Panel title={strings.disconnectedTitle} body={strings.disconnectedBody}>
-          <button type="button" className="primary" onClick={() => vscode.postMessage({ type: "connect" })}>
+  if (state.view === "signedOut") {
+    return (
+      <Panel title={strings.signedOutTitle} body={strings.signedOutBody}>
+        <button type="button" className="primary" onClick={() => post({ type: "signIn" })}>
+          {strings.signIn}
+        </button>
+      </Panel>
+    );
+  }
+
+  const banner =
+    connection.status === "connected" ? null : (
+      <div className="banner" role="status">
+        <span>
+          {connection.status === "connecting"
+            ? strings.connecting
+            : connection.status === "failed"
+              ? connection.message
+              : strings.disconnected}
+        </span>
+        {connection.status === "disconnected" && (
+          <button type="button" className="link" onClick={() => post({ type: "connect" })}>
             {strings.connect}
           </button>
-        </Panel>
-      );
-    case "failed":
-      return (
-        <Panel title={strings.failedTitle} body={state.message}>
-          <button type="button" className="link" onClick={() => vscode.postMessage({ type: "showLog" })}>
+        )}
+        {connection.status === "failed" && (
+          <button type="button" className="link" onClick={() => post({ type: "showLog" })}>
             {strings.showLog}
           </button>
-        </Panel>
-      );
+        )}
+      </div>
+    );
+
+  if (state.view === "noProject") {
+    return (
+      <>
+        {banner}
+        <Panel title={strings.noProjectTitle} body={strings.noProjectBody} />
+      </>
+    );
   }
+
+  return (
+    <>
+      {banner}
+      <Chat state={state} strings={strings} locale={locale} sentCount={sentCount} />
+    </>
+  );
 }
 
-function Panel(props: { title: string; body: string; busy?: boolean; children?: React.ReactNode }) {
+function Panel(props: { title: string; body: string; children?: React.ReactNode }) {
   return (
-    <section className="panel" aria-busy={props.busy ?? false} aria-live="polite">
+    <section className="panel" aria-live="polite">
       <h2>{props.title}</h2>
       <p>{props.body}</p>
       {props.children && <div className="actions">{props.children}</div>}

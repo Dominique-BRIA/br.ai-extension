@@ -1,39 +1,94 @@
 import { randomBytes } from "node:crypto";
+import type { ListMessagesResponse, Message } from "@br-ia/protocol";
 import * as vscode from "vscode";
+import { type Api, ApiRequestError } from "./api";
 import type { Connection } from "./connection";
-import type { FromWebview, ToWebview, WebviewStrings } from "./webviewMessages";
+import type { Session } from "./session";
+import type { ChatStrings, ChatViewState, FromWebview, ToWebview } from "./webviewMessages";
+import type { WorkspaceStore } from "./workspaceStore";
 
-/** La vue « Chat » de la barre latérale. Au lot 0, elle affiche l'état de la connexion. */
-export class ChatViewProvider implements vscode.WebviewViewProvider {
+const OPEN_PROJECT_KEY = "bria.openProjectId";
+
+/** La vue « Chat » : le fil de discussion du projet ouvert. */
+export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = "bria.chat";
+
+  readonly #onDidOpenProject = new vscode.EventEmitter<string | undefined>();
+  readonly onDidOpenProject = this.#onDidOpenProject.event;
+  readonly #subscriptions: vscode.Disposable[];
   #view: vscode.WebviewView | undefined;
+  #projectId: string | undefined;
+  #messages: Message[] = [];
+  #hasMore = false;
+  #loadingOlder = false;
 
   constructor(
-    private readonly extensionUri: vscode.Uri,
+    private readonly context: vscode.ExtensionContext,
+    private readonly api: Api,
+    private readonly session: Session,
     private readonly connection: Connection,
-  ) {}
+    private readonly store: WorkspaceStore,
+  ) {
+    this.#projectId = context.workspaceState.get<string>(OPEN_PROJECT_KEY);
+    this.#subscriptions = [
+      connection.onDidChangeState(() => this.#post()),
+      connection.onEvent((event) => {
+        if (event.type === "message.created" && event.message.projectId === this.#projectId) {
+          this.#append(event.message);
+        }
+      }),
+      store.onDidChange(() => {
+        if (this.#projectId && store.current && !store.project(this.#projectId)) {
+          void this.open(undefined);
+        } else {
+          this.#post();
+        }
+      }),
+      session.onDidChange((user) => {
+        if (!user) {
+          this.#messages = [];
+          this.#post();
+        }
+      }),
+      // Après une reconnexion, des messages ont pu arriver : on recharge le fil.
+      connection.onDidChangeState((state) => {
+        if (state.status === "connected" && this.#projectId) void this.#loadLatest();
+      }),
+    ];
+  }
+
+  get openProjectId(): string | undefined {
+    return this.#projectId;
+  }
+
+  /** Ouvre le fil d'un projet (ou aucun) et affiche la vue. */
+  async open(projectId: string | undefined, reveal = false): Promise<void> {
+    this.#projectId = projectId;
+    this.#messages = [];
+    this.#hasMore = false;
+    await this.context.workspaceState.update(OPEN_PROJECT_KEY, projectId);
+    this.#onDidOpenProject.fire(projectId);
+    this.#post();
+    if (reveal) await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+    if (projectId) await this.#loadLatest();
+  }
+
+  /** Vrai si la vue est visible et montre ce projet. */
+  isShowing(projectId: string): boolean {
+    return Boolean(this.#view?.visible) && this.#projectId === projectId;
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.#view = view;
-    const dist = vscode.Uri.joinPath(this.extensionUri, "dist");
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     view.webview.options = { enableScripts: true, localResourceRoots: [dist] };
     view.webview.html = this.#html(view.webview, dist);
 
     const subscriptions = [
-      view.webview.onDidReceiveMessage((message: FromWebview) => {
-        switch (message.type) {
-          case "ready":
-            this.#postState();
-            return;
-          case "connect":
-            void vscode.commands.executeCommand("bria.connect");
-            return;
-          case "showLog":
-            void vscode.commands.executeCommand("bria.showLog");
-            return;
-        }
+      view.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
+      view.onDidChangeVisibility(() => {
+        if (view.visible) this.#post();
       }),
-      this.connection.onDidChangeState(() => this.#postState()),
     ];
     view.onDidDispose(() => {
       for (const subscription of subscriptions) subscription.dispose();
@@ -41,9 +96,129 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  #postState(): void {
-    const message: ToWebview = { type: "state", state: this.connection.state, strings: strings() };
+  dispose(): void {
+    for (const subscription of this.#subscriptions) subscription.dispose();
+    this.#onDidOpenProject.dispose();
+  }
+
+  async #onMessage(message: FromWebview): Promise<void> {
+    switch (message.type) {
+      case "ready":
+        this.#post();
+        if (this.#projectId && this.#messages.length === 0) await this.#loadLatest();
+        return;
+      case "signIn":
+        await vscode.commands.executeCommand("bria.signIn");
+        return;
+      case "connect":
+        await vscode.commands.executeCommand("bria.connect");
+        return;
+      case "showLog":
+        await vscode.commands.executeCommand("bria.showLog");
+        return;
+      case "loadOlder":
+        await this.#loadOlder();
+        return;
+      case "send":
+        await this.#send(message.body, message.replyToId, message.mentions);
+        return;
+    }
+  }
+
+  async #loadLatest(): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId || !this.session.token) return;
+    try {
+      const page = await this.api.get<ListMessagesResponse>(`/projects/${projectId}/messages`);
+      if (projectId !== this.#projectId) return;
+      this.#messages = page.messages;
+      this.#hasMore = page.hasMore;
+      this.#post();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #loadOlder(): Promise<void> {
+    const projectId = this.#projectId;
+    const oldest = this.#messages[0];
+    if (!projectId || !oldest || this.#loadingOlder) return;
+    this.#loadingOlder = true;
+    this.#post();
+    try {
+      const page = await this.api.get<ListMessagesResponse>(
+        `/projects/${projectId}/messages?before=${oldest.id}`,
+      );
+      if (projectId !== this.#projectId) return;
+      this.#messages = [...page.messages, ...this.#messages];
+      this.#hasMore = page.hasMore;
+    } catch (error) {
+      this.#reportError(error);
+    } finally {
+      this.#loadingOlder = false;
+      this.#post();
+    }
+  }
+
+  async #send(body: string, replyToId: string | undefined, mentions: string[]): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId) return;
+    try {
+      const { message } = await this.api.post<{ message: Message }>(`/projects/${projectId}/messages`, {
+        body,
+        replyToId,
+        mentions,
+      });
+      this.#append(message);
+      this.#postRaw({ type: "sendResult", ok: true });
+    } catch (error) {
+      this.#postRaw({ type: "sendResult", ok: false });
+      this.#reportError(error);
+    }
+  }
+
+  /** Ajoute un message s'il n'est pas déjà là (il peut arriver par l'API et par le temps réel). */
+  #append(message: Message): void {
+    if (this.#messages.some((existing) => existing.id === message.id)) return;
+    this.#messages = [...this.#messages, message];
+    this.#post();
+  }
+
+  #state(): ChatViewState {
+    const user = this.session.user;
+    if (!this.session.token || !user) return { view: "signedOut" };
+    const found = this.#projectId ? this.store.project(this.#projectId) : undefined;
+    if (!found) return { view: "noProject" };
+    return {
+      view: "project",
+      projectId: found.project.id,
+      projectName: found.project.name,
+      teamName: found.team.name,
+      myUserId: user.id,
+      members: found.team.members.map(({ userId, displayName }) => ({ userId, displayName })),
+      messages: this.#messages,
+      hasMore: this.#hasMore,
+      loadingOlder: this.#loadingOlder,
+    };
+  }
+
+  #post(): void {
+    this.#postRaw({
+      type: "state",
+      state: this.#state(),
+      connection: this.connection.state,
+      strings: chatStrings(),
+      locale: vscode.env.language,
+    });
+  }
+
+  #postRaw(message: ToWebview): void {
     void this.#view?.webview.postMessage(message);
+  }
+
+  #reportError(error: unknown): void {
+    const text = error instanceof ApiRequestError ? error.message : String(error);
+    void vscode.window.showErrorMessage(text);
   }
 
   #html(webview: vscode.Webview, dist: vscode.Uri): string {
@@ -54,6 +229,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       "default-src 'none'",
       `style-src ${webview.cspSource}`,
       `font-src ${webview.cspSource}`,
+      `img-src ${webview.cspSource} https: data:`,
       `script-src 'nonce-${nonce}'`,
     ].join("; ");
 
@@ -73,20 +249,34 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   }
 }
 
-function strings(): WebviewStrings {
+function chatStrings(): ChatStrings {
+  const t = vscode.l10n.t;
   return {
-    disconnectedTitle: vscode.l10n.t("Not connected"),
-    disconnectedBody: vscode.l10n.t("Connect to the br.ia server to join your team's chat."),
-    connectingTitle: vscode.l10n.t("Connecting…"),
-    connectingBody: vscode.l10n.t(
-      "br.ia is reaching the server. It will keep retrying if the server is unavailable.",
-    ),
-    connectedTitle: vscode.l10n.t("Connected"),
-    connectedBody: vscode.l10n.t(
-      "This machine is connected to the br.ia server. Team chat arrives in the next version.",
-    ),
-    failedTitle: vscode.l10n.t("Connection refused"),
-    connect: vscode.l10n.t("Connect"),
-    showLog: vscode.l10n.t("Show log"),
+    signedOutTitle: t("Not signed in"),
+    signedOutBody: t("Sign in to join your team's chat."),
+    signIn: t("Sign in"),
+    noProjectTitle: t("No project open"),
+    noProjectBody: t("Choose a project in the Teams view, or create one."),
+    emptyChatTitle: t("No messages yet"),
+    emptyChatBody: t("Write the first message. Type @ to mention a teammate."),
+    connecting: t("Reconnecting to the server… Messages will arrive once connected."),
+    disconnected: t("Not connected to the server."),
+    connect: t("Connect"),
+    showLog: t("Show log"),
+    loadOlder: t("Load older messages"),
+    loading: t("Loading…"),
+    reply: t("Reply"),
+    replyingTo: t("Replying to {0}"),
+    cancelReply: t("Cancel reply"),
+    composerPlaceholder: t("Message"),
+    composerHint: t("Enter to send, Shift+Enter for a new line"),
+    send: t("Send"),
+    today: t("Today"),
+    yesterday: t("Yesterday"),
+    formerMember: t("Former member"),
+    serveur: t("server agent"),
+    cuisinier: t("cook agent"),
+    mentionsYou: t("Mentions you"),
+    you: t("{0} (you)"),
   };
 }

@@ -1,4 +1,10 @@
-import { type MachineInfo, PROTOCOL_VERSION, parseServerMessage, type ServerMessage } from "@br-ia/protocol";
+import {
+  type MachineInfo,
+  PROTOCOL_VERSION,
+  parseServerMessage,
+  type ServerEvent,
+  type ServerMessage,
+} from "@br-ia/protocol";
 import * as vscode from "vscode";
 import WebSocket from "ws";
 import { reconnectDelay } from "./backoff";
@@ -10,6 +16,8 @@ export type ConnectionState =
   /** Erreur qui empêche de se reconnecter seul, par exemple une extension trop ancienne. */
   | { status: "failed"; message: string };
 
+export type FailureReason = "protocol_mismatch" | "unauthenticated";
+
 const HEARTBEAT_MS = 30_000;
 
 /**
@@ -18,6 +26,11 @@ const HEARTBEAT_MS = 30_000;
 export class Connection implements vscode.Disposable {
   readonly #onDidChangeState = new vscode.EventEmitter<ConnectionState>();
   readonly onDidChangeState = this.#onDidChangeState.event;
+  readonly #onEvent = new vscode.EventEmitter<ServerEvent>();
+  /** Événements poussés par le serveur : nouveaux messages, présence, changements d'équipe. */
+  readonly onEvent = this.#onEvent.event;
+  readonly #onFailure = new vscode.EventEmitter<FailureReason>();
+  readonly onFailure = this.#onFailure.event;
 
   #state: ConnectionState = { status: "disconnected" };
   #socket: WebSocket | null = null;
@@ -29,6 +42,7 @@ export class Connection implements vscode.Disposable {
 
   constructor(
     private readonly getUrl: () => string,
+    private readonly getToken: () => string | undefined,
     private readonly machine: MachineInfo,
     private readonly log: vscode.LogOutputChannel,
   ) {}
@@ -52,10 +66,18 @@ export class Connection implements vscode.Disposable {
   dispose(): void {
     this.disconnect();
     this.#onDidChangeState.dispose();
+    this.#onEvent.dispose();
+    this.#onFailure.dispose();
   }
 
   #open(): void {
     this.#teardown();
+    const token = this.getToken();
+    if (!token) {
+      this.#wanted = false;
+      this.#setState({ status: "disconnected" });
+      return;
+    }
     const url = this.getUrl();
     this.#setState({ status: "connecting", attempt: this.#attempt });
     this.log.info(`Connexion à ${url} (tentative ${this.#attempt + 1})`);
@@ -65,7 +87,7 @@ export class Connection implements vscode.Disposable {
 
     socket.on("open", () => {
       socket.send(
-        JSON.stringify({ type: "hello", protocolVersion: PROTOCOL_VERSION, machine: this.machine }),
+        JSON.stringify({ type: "hello", protocolVersion: PROTOCOL_VERSION, token, machine: this.machine }),
       );
     });
     socket.on("message", (data) => {
@@ -101,11 +123,17 @@ export class Connection implements vscode.Disposable {
         return;
       case "pong":
         return;
+      case "message.created":
+      case "presence.changed":
+      case "workspace.changed":
+        this.#onEvent.fire(message);
+        return;
       case "error":
         this.log.error(`Le serveur a refusé la connexion : ${message.code} — ${message.message}`);
-        if (message.code === "protocol_mismatch") {
+        if (message.code === "protocol_mismatch" || message.code === "unauthenticated") {
           this.#wanted = false;
           this.#setState({ status: "failed", message: message.message });
+          this.#onFailure.fire(message.code);
         }
         return;
     }

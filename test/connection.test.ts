@@ -73,12 +73,22 @@ describe("Connection", () => {
       serverVersion: "0.1.0",
       connectionId: "c1",
     }));
-    connection = new Connection(() => url, machine, log);
+    connection = new Connection(
+      () => url,
+      () => "jeton",
+      machine,
+      log,
+    );
     const connected = waitFor("connected");
     connection.connect();
 
     expect(await connected).toEqual({ status: "connected", serverVersion: "0.1.0" });
-    expect(received[0]).toEqual({ type: "hello", protocolVersion: PROTOCOL_VERSION, machine });
+    expect(received[0]).toEqual({
+      type: "hello",
+      protocolVersion: PROTOCOL_VERSION,
+      token: "jeton",
+      machine,
+    });
   });
 
   it("s'arrête sans réessayer quand le serveur refuse la version du protocole", async () => {
@@ -87,7 +97,12 @@ describe("Connection", () => {
       code: "protocol_mismatch",
       message: "Mettez l'extension à jour.",
     }));
-    connection = new Connection(() => url, machine, log);
+    connection = new Connection(
+      () => url,
+      () => "jeton",
+      machine,
+      log,
+    );
     const failed = waitFor("failed");
     connection.connect();
 
@@ -95,7 +110,12 @@ describe("Connection", () => {
   });
 
   it("revient à l'état déconnecté quand on se déconnecte", async () => {
-    connection = new Connection(() => "ws://127.0.0.1:9/ws", machine, log);
+    connection = new Connection(
+      () => "ws://127.0.0.1:9/ws",
+      () => "jeton",
+      machine,
+      log,
+    );
     connection.connect();
     connection.disconnect();
     expect(connection.state).toEqual({ status: "disconnected" });
