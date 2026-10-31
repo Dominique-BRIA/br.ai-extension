@@ -82,11 +82,74 @@ export interface ChatStrings {
   quickStatusMessage: string;
   quickMemory: string;
   quickTerminal: string;
+  tabTeam: string;
+  online_pill: string;
+  ordersInProgress: string;
+  /** « {0} active(s) » */
+  activeCount: string;
+  /** « Demandée par {0} » */
+  requestedBy: string;
+  /** « Étape {0} : {1} » */
+  stepOf: string;
+  cook: string;
+  /** « sur la machine de {0} » */
+  onMachine: string;
+  waitingMachine: string;
+  cookStatus: { busy: string; ready: string; waiting: string };
+  viewStream: string;
+  details: string;
+  filterAll: string;
+  filterRunning: string;
+  filterDone: string;
+  /** « Terminée {0} » (avec une durée relative) */
+  finishedAgo: string;
+  startsWhenMachine: string;
+  /** « File d'attente : #{0} » */
+  queuePosition: string;
+  openFile: string;
+  memoryTitle: string;
+  /** « Base de connaissances du projet {0} » */
+  memorySubtitle: string;
+  inProgress: string;
+  byCook: string;
+  preview: string;
+  recentDocuments: string;
+  /** « {0} fichier(s) » */
+  fileCount: string;
+  /** « Commande n° {0} » pour un document */
+  fromOrder: string;
+  activeDecision: string;
+  newNote: string;
+  /** « Équipe {0} » */
+  teamTitle: string;
+  workspace: string;
+  /** « {0} humain(s) · {1} agents IA » */
+  teamStats: string;
+  teamMembers: string;
+  /** « {0} actif(s) » */
+  activeMembers: string;
+  aiAgents: string;
+  serveurRole: string;
+  cuisinierRole: string;
+  agentActive: string;
+  agentUnavailable: string;
+  roleChef: string;
+  roleMember: string;
+  youBadge: string;
+  onlineNow: string;
+  /** « Vu {0} » */
+  seenAgo: string;
+  neverSeen: string;
+  invite: string;
+  lendMachine: string;
 }
 
 export interface ChatMember {
   userId: string;
   displayName: string;
+  role: "chef" | "membre";
+  online: boolean;
+  lastSeenAt: string | null;
 }
 
 export type ChatViewState =
@@ -139,6 +202,9 @@ export type WebviewCommand =
   | "setPermissionMode"
   | "linkFolder"
   | "openChatInEditor"
+  | "newNote"
+  | "invite"
+  | "toggleLending"
   | "menu";
 
 /** Webview → extension. */
@@ -154,4 +220,6 @@ export type FromWebview =
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
   | { type: "orderAction"; orderId: string; action: "stop" | "revert" }
-  | { type: "command"; command: WebviewCommand };
+  | { type: "command"; command: WebviewCommand }
+  /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */
+  | { type: "openProjectFile"; path: string };

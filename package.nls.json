@@ -54,6 +54,7 @@
   "config.permissionMode.plan": "The cook reads and proposes, but changes nothing.",
   "config.lendMachine": "Let the cook work on this machine for your teammates' orders when they are not connected.",
   "command.showCookTerminal": "Show What the Cook Runs",
-  "command.openChatInEditor": "Open the Chat in a Large Tab",
-  "config.showCookTerminal": "Open the cook's terminal automatically when it runs a command on this machine."
+  "command.openChatInEditor": "Open br.ia",
+  "config.showCookTerminal": "Open the cook's terminal automatically when it runs a command on this machine.",
+  "command.memory.add": "New Note"
 }

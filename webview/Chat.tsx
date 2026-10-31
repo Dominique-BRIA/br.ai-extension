@@ -4,10 +4,11 @@ import type { ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessag
 import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
 import { authorName, continuesPrevious, formatDay, formatTime, sameDay } from "./format";
-import { Header, type Tab } from "./Header";
+import { BottomNav, Header, type Tab } from "./Header";
 import { Markdown } from "./Markdown";
 import { MemoryTab } from "./MemoryTab";
-import { activeOrder, OrderCard, OrdersTab } from "./Orders";
+import { activeOrder, OrderPill, OrdersTab } from "./Orders";
+import { TeamTab } from "./TeamTab";
 import { post } from "./vscodeApi";
 
 type ProjectState = Extract<ChatViewState, { view: "project" }>;
@@ -39,13 +40,19 @@ function initials(author: MessageAuthor, strings: ChatStrings): string {
   return letters.slice(0, 2).toUpperCase() || "?";
 }
 
-/** Le panneau d'un projet : en-tête, puis les onglets Chat, Mémoire et Commandes. */
+/** Le panneau d'un projet : en-tête, l'onglet choisi, puis la navigation du bas. */
 export function Chat({ state, strings, locale, logoUri, connected, sentCount }: Props) {
   const [tab, setTab] = useState<Tab>("chat");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const previous = useRef({ first: "", last: "", height: 0, nearBottom: true });
   const current = activeOrder(state.orders);
+  const sections: Record<Tab, string> = {
+    chat: strings.tabChat,
+    memory: strings.tabMemory,
+    orders: strings.tabOrders,
+    team: strings.tabTeam,
+  };
 
   // Défilement : en bas à l'ouverture et à l'arrivée d'un message si on y était déjà ;
   // position conservée quand des messages plus anciens s'ajoutent en haut.
@@ -96,20 +103,19 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
     <div className="panel-root">
       <Header
         logoUri={logoUri}
+        section={sections[tab]}
         teamName={`${state.teamName} · ${state.projectName}`}
         onlineCount={state.onlineCount}
         memberCount={state.members.length}
         connected={connected}
-        tab={tab}
-        onTab={setTab}
-        openMemory={state.memory.filter((item) => item.status === "open").length}
-        ordersSignal={current ? (current.status === "running" ? "running" : "pending") : null}
         strings={strings}
       />
 
       {tab === "memory" && (
         <MemoryTab
           items={state.memory}
+          orders={state.orders}
+          projectName={state.projectName}
           isChef={state.isChef}
           myUserId={state.myUserId}
           strings={strings}
@@ -134,15 +140,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
       {tab === "chat" && (
         <>
           <div className="messages" ref={list} onScroll={onScroll}>
-            {current && (
-              <OrderCard
-                order={current}
-                strings={strings}
-                locale={locale}
-                folderLinked={state.folderLinked}
-                onOpen={() => setTab("orders")}
-              />
-            )}
+            {current && <OrderPill order={current} strings={strings} onOpen={() => setTab("orders")} />}
 
             {state.hasMore && (
               <button
@@ -256,6 +254,29 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
           />
         </>
       )}
+
+      {tab === "team" && (
+        <TeamTab
+          teamName={state.teamName}
+          projectName={state.projectName}
+          members={state.members}
+          myUserId={state.myUserId}
+          isChef={state.isChef}
+          connected={connected}
+          orders={state.orders}
+          folderLinked={state.folderLinked}
+          strings={strings}
+          locale={locale}
+        />
+      )}
+
+      <BottomNav
+        tab={tab}
+        onTab={setTab}
+        openMemory={state.memory.filter((item) => item.status === "open").length}
+        ordersSignal={current ? (current.status === "running" ? "running" : "pending") : null}
+        strings={strings}
+      />
     </div>
   );
 }

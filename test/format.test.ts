@@ -1,7 +1,14 @@
 import type { Message } from "@br-ia/protocol";
 import { describe, expect, it } from "vitest";
 import type { ChatStrings } from "../src/webviewMessages";
-import { authorName, continuesPrevious, formatDay, formatSize } from "../webview/format";
+import {
+  authorName,
+  continuesPrevious,
+  formatDay,
+  formatRelative,
+  formatSize,
+  orderFiles,
+} from "../webview/format";
 
 const strings = { today: "Aujourd'hui", yesterday: "Hier" } as ChatStrings;
 
@@ -66,5 +73,22 @@ describe("formatSize", () => {
     expect(formatSize(850, "fr")).toBe("850 o");
     expect(formatSize(1229, "fr")).toBe("1,2 Ko");
     expect(formatSize(14 * 1024 * 1024, "fr")).toBe("14 Mo");
+  });
+});
+
+describe("formatRelative et orderFiles", () => {
+  it("dit « il y a 3 heures »", () => {
+    const now = Date.parse("2026-10-31T15:00:00.000Z");
+    expect(formatRelative("2026-10-31T12:00:00.000Z", "fr", now)).toBe("il y a 3 heures");
+  });
+
+  it("retrouve les fichiers modifiés dans les étapes d'une commande en cours", () => {
+    const steps = [
+      { kind: "read", text: "Lu : a.md" },
+      { kind: "write", text: "Modifié : notes.md" },
+      { kind: "write", text: "Modifié : notes.md" },
+    ];
+    expect(orderFiles({ changedFiles: [], steps })).toEqual(["notes.md"]);
+    expect(orderFiles({ changedFiles: ["b.md"], steps })).toEqual(["b.md"]);
   });
 });

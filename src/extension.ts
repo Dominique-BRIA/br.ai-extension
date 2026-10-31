@@ -143,6 +143,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     void memory.setProject(chat.openProjectId);
     void orders.setProject(chat.openProjectId);
   }
+
+  // Le panneau vit dans la barre latérale de droite : on l'ouvre une fois pour qu'il soit trouvé.
+  if (!context.globalState.get<boolean>("bria.chatRevealed")) {
+    await context.globalState.update("bria.chatRevealed", true);
+    void vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+  }
 }
 
 export function deactivate(): void {}

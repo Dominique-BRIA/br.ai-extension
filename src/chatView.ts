@@ -232,6 +232,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "command":
         await this.#runCommand(message.command);
         return;
+      case "openProjectFile":
+        await this.#openProjectFile(message.path);
+        return;
     }
   }
 
@@ -248,6 +251,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         return;
       case "openChatInEditor":
         this.openInEditor();
+        return;
+      case "newNote":
+        await vscode.commands.executeCommand("bria.memory.add");
+        return;
+      case "invite":
+        await vscode.commands.executeCommand("bria.invite", this.#teamNode());
+        return;
+      case "toggleLending":
+        await vscode.commands.executeCommand("bria.toggleLending");
         return;
       case "linkFolder": {
         const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
@@ -276,6 +288,35 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         return;
       }
     }
+  }
+
+  #teamNode() {
+    const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+    return found ? { kind: "team" as const, team: found.team } : undefined;
+  }
+
+  /** Ouvre un fichier produit par le cuisinier, s'il est présent sur cette machine. */
+  async #openProjectFile(path: string): Promise<void> {
+    const root = this.#projectId ? this.#sources.folders.get(this.#projectId) : undefined;
+    if (!root) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("Link a folder to this project to open its files on this machine."),
+      );
+      return;
+    }
+    const file = vscode.Uri.joinPath(vscode.Uri.file(root), path);
+    try {
+      await vscode.workspace.fs.stat(file);
+    } catch {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("{0} is not on this machine yet. Get the latest version first.", path),
+      );
+      return;
+    }
+    await vscode.commands.executeCommand(
+      path.toLowerCase().endsWith(".md") ? "markdown.showPreview" : "vscode.open",
+      file,
+    );
   }
 
   async #loadLatest(): Promise<void> {
@@ -374,7 +415,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       teamName: found.team.name,
       myUserId: user.id,
       isChef: found.team.myRole === "chef",
-      members: found.team.members.map(({ userId, displayName }) => ({ userId, displayName })),
+      members: found.team.members.map(({ userId, displayName, role, online, lastSeenAt }) => ({
+        userId,
+        displayName,
+        role,
+        online,
+        lastSeenAt,
+      })),
       onlineCount: found.team.members.filter((member) => member.online).length,
       messages: this.#messages,
       hasMore: this.#hasMore,
@@ -555,5 +602,52 @@ function chatStrings(): ChatStrings {
     quickStatusMessage: t("@bria where are the orders and tasks of the project?"),
     quickMemory: t("Memory (.md)"),
     quickTerminal: t("Cook terminal"),
+    tabTeam: t("Team"),
+    online_pill: t("ONLINE"),
+    ordersInProgress: t("Orders in progress"),
+    activeCount: t("{0} ACTIVE"),
+    requestedBy: t("Requested by {0}"),
+    stepOf: t("Step {0}: {1}"),
+    cook: t("Cook"),
+    onMachine: t("on {0}'s machine"),
+    waitingMachine: t("waiting for a machine"),
+    cookStatus: { busy: t("Working"), ready: t("Available"), waiting: t("Waiting") },
+    viewStream: t("View the stream"),
+    details: t("Details"),
+    filterAll: t("All ({0})"),
+    filterRunning: t("In progress ({0})"),
+    filterDone: t("Finished ({0})"),
+    finishedAgo: t("Finished {0}"),
+    startsWhenMachine: t("Will start as soon as a machine is available"),
+    queuePosition: t("Queue: #{0}"),
+    openFile: t("Open"),
+    memoryTitle: t("Memory & Documents"),
+    memorySubtitle: t("Knowledge base of the {0} project"),
+    inProgress: t("Being prepared"),
+    byCook: t("In progress by the cook"),
+    preview: t("Preview the draft"),
+    recentDocuments: t("Recent documents"),
+    fileCount: t("{0} FILE(S)"),
+    fromOrder: t("Order {0}"),
+    activeDecision: t("ACTIVE DECISION"),
+    newNote: t("New note"),
+    teamTitle: t("{0} team"),
+    workspace: t("TEAM · {0}"),
+    teamStats: t("{0} human(s) · {1} AI agents"),
+    teamMembers: t("Team members"),
+    activeMembers: t("{0} ONLINE"),
+    aiAgents: t("AI agents"),
+    serveurRole: t("Listens, takes notes and settles"),
+    cuisinierRole: t("Writes code and documents on your machines"),
+    agentActive: t("Active"),
+    agentUnavailable: t("Unavailable"),
+    roleChef: t("Team lead"),
+    roleMember: t("Member"),
+    youBadge: t("You"),
+    onlineNow: t("Online"),
+    seenAgo: t("Seen {0}"),
+    neverSeen: t("Never connected"),
+    invite: t("Invite"),
+    lendMachine: t("Lend my machine"),
   };
 }

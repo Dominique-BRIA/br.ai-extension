@@ -215,6 +215,26 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
         );
       }
     }),
+    command("bria.memory.add", async () => {
+      const projectId = memory.projectId;
+      if (!projectId) return;
+      const types = [
+        { label: `$(law) ${vscode.l10n.t("Decision")}`, type: "decision" },
+        { label: `$(question) ${vscode.l10n.t("Open question")}`, type: "question" },
+        { label: `$(tasklist) ${vscode.l10n.t("Task")}`, type: "task" },
+      ] as const;
+      const picked = await vscode.window.showQuickPick(types, { title: vscode.l10n.t("New note") });
+      if (!picked) return;
+      const text = await vscode.window.showInputBox({
+        title: vscode.l10n.t("New note"),
+        prompt: vscode.l10n.t("Short and self-contained: the whole team will read it."),
+        ignoreFocusOut: true,
+        validateInput: (value) => (value.trim() ? undefined : vscode.l10n.t("Enter a text.")),
+      });
+      if (!text) return;
+      await api.post(`/projects/${projectId}/memory`, { type: picked.type, text: text.trim() });
+      await memory.refresh();
+    }),
     command("bria.memory.openDocument", async () => {
       if (!memory.projectId) return;
       await vscode.commands.executeCommand(

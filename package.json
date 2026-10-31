@@ -282,7 +282,16 @@
         "command": "bria.openChatInEditor",
         "title": "%command.openChatInEditor%",
         "category": "br.ia",
-        "icon": "$(link-external)"
+        "icon": {
+          "light": "media/logo-bouton.png",
+          "dark": "media/logo-bouton.png"
+        }
+      },
+      {
+        "command": "bria.memory.add",
+        "title": "%command.memory.add%",
+        "category": "br.ia",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -422,6 +431,10 @@
         {
           "command": "bria.openChatInEditor",
           "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.memory.add",
+          "when": "bria.projectOpen"
         }
       ],
       "view/title": [
@@ -513,6 +526,11 @@
         {
           "command": "bria.openChatInEditor",
           "when": "view == bria.chat && bria.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "bria.memory.add",
+          "when": "view == bria.memory && bria.projectOpen",
           "group": "navigation@0"
         }
       ],
@@ -623,6 +641,11 @@
           "command": "bria.proposal.reject",
           "when": "resourceScheme == bria-proposal",
           "group": "navigation@2"
+        },
+        {
+          "command": "bria.openChatInEditor",
+          "when": "bria.signedIn",
+          "group": "navigation@100"
         }
       ]
     },

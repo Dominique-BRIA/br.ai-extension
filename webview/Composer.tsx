@@ -17,7 +17,13 @@ interface Props {
   sentCount: number;
 }
 
-const BRIA: ChatMember = { userId: "bria", displayName: "bria" };
+const BRIA: ChatMember = {
+  userId: "bria",
+  displayName: "bria",
+  role: "membre",
+  online: true,
+  lastSeenAt: null,
+};
 
 /** Mention en cours de saisie : « @Ali » juste avant le curseur. */
 function mentionQuery(text: string, cursor: number): { start: number; query: string } | null {

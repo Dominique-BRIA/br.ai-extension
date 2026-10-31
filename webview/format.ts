@@ -65,3 +65,30 @@ export function formatSize(bytes: number, locale: string): string {
   const digits = unit === 0 || value >= 10 ? 0 : 1;
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
 }
+
+/** Durée relative : « il y a 3 heures », « hier »… */
+export function formatRelative(iso: string, locale: string, now = Date.now()): string {
+  const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["day", 86_400],
+    ["hour", 3_600],
+    ["minute", 60],
+  ];
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  for (const [unit, size] of units) {
+    if (Math.abs(seconds) >= size) return format.format(Math.round(seconds / size), unit);
+  }
+  return format.format(0, "minute");
+}
+
+/** Fichiers modifiés par une commande : ceux du bilan, sinon ceux annoncés dans les étapes. */
+export function orderFiles(order: {
+  changedFiles: string[];
+  steps: { kind: string; text: string }[];
+}): string[] {
+  if (order.changedFiles.length > 0) return order.changedFiles;
+  const files = order.steps
+    .filter((step) => step.kind === "write" && step.text.startsWith("Modifié : "))
+    .map((step) => step.text.slice("Modifié : ".length));
+  return [...new Set(files)];
+}
