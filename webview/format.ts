@@ -52,3 +52,16 @@ export function continuesPrevious(previous: Message | undefined, message: Messag
 function startOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
+
+/** Taille lisible : « 850 o », « 1,2 Ko », « 14 Mo ». */
+export function formatSize(bytes: number, locale: string): string {
+  const units = ["o", "Ko", "Mo"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  const digits = unit === 0 || value >= 10 ? 0 : 1;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
+}

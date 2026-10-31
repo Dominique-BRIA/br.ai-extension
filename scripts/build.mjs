@@ -37,6 +37,14 @@ const builds = [
     // Police des icônes Codicons, copiée dans dist/.
     "--loader:.ttf=file",
   ],
+  [
+    // Mermaid, chargé seulement à l'affichage du premier diagramme.
+    "webview/mermaidEntry.ts",
+    "--outfile=dist/mermaid.js",
+    "--platform=browser",
+    "--format=iife",
+    "--target=es2022",
+  ],
 ];
 
 await Promise.all(builds.map((args) => esbuild([...args, ...shared])));

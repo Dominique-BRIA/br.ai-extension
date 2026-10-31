@@ -21,5 +21,8 @@
   "command.removeMember": "Remove from Team",
   "command.transferChef": "Make Team Lead",
   "config.serverUrl": "Address of the br.ia server.",
-  "config.notifyMentions": "Show a notification when a teammate mentions you."
+  "config.notifyMentions": "Show a notification when a teammate mentions you.",
+  "command.editProfile": "Edit Profile",
+  "command.manageMachines": "Manage Signed-In Machines",
+  "command.deleteAccount": "Delete Account"
 }

@@ -1,6 +1,7 @@
-import type { Message } from "@br-ia/protocol";
+import type { Attachment, Message } from "@br-ia/protocol";
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { ChatMember, ChatStrings } from "../src/webviewMessages";
+import type { ChatMember, ChatStrings, ToWebview } from "../src/webviewMessages";
+import { Attachments } from "./Attachments";
 import { authorName } from "./format";
 import { loadDraft, post, saveDraft } from "./vscodeApi";
 
@@ -11,6 +12,7 @@ interface Props {
   replyTo: Message | null;
   onCancelReply(): void;
   strings: ChatStrings;
+  locale: string;
   /** Incrémenté par le parent quand l'envoi a réussi. */
   sentCount: number;
 }
@@ -27,11 +29,14 @@ export function Composer(props: Props) {
   const [cursor, setCursor] = useState(0);
   const [selected, setSelected] = useState(0);
   const [sending, setSending] = useState(false);
+  /** Fichiers déjà envoyés au serveur, qui partiront avec le prochain message. */
+  const [pending, setPending] = useState<Attachment[]>([]);
   const textarea = useRef<HTMLTextAreaElement>(null);
 
   // Changement de projet : on reprend son brouillon.
   useEffect(() => {
     setText(loadDraft(projectId));
+    setPending([]);
   }, [projectId]);
 
   useEffect(() => saveDraft(projectId, text), [projectId, text]);
@@ -41,6 +46,7 @@ export function Composer(props: Props) {
   useEffect(() => {
     if (props.sentCount === 0) return;
     setText("");
+    setPending([]);
     setSending(false);
     props.onCancelReply();
   }, [props.sentCount]);
@@ -82,21 +88,31 @@ export function Composer(props: Props) {
 
   const send = () => {
     const body = text.trim();
-    if (!body || sending) return;
+    if ((!body && pending.length === 0) || sending) return;
     // Mentions : les membres dont « @Nom » figure encore dans le texte.
     const mentions = members.filter((member) => body.includes(`@${member.displayName}`)).map((m) => m.userId);
     setSending(true);
-    post({ type: "send", body, replyToId: replyTo?.id, mentions });
+    post({
+      type: "send",
+      body,
+      replyToId: replyTo?.id,
+      mentions,
+      attachmentIds: pending.map((attachment) => attachment.id),
+    });
   };
 
-  // Échec de l'envoi : on permet de réessayer.
+  // Échec de l'envoi : on permet de réessayer. Fichiers prêts : on les ajoute.
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === "sendResult" && !event.data.ok) setSending(false);
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      if (event.data.type === "sendResult" && !event.data.ok) setSending(false);
+      if (event.data.type === "attached" && event.data.projectId === projectId) {
+        const added = event.data.attachments;
+        setPending((current) => [...current, ...added]);
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [projectId]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (suggestions.length > 0) {
@@ -163,7 +179,22 @@ export function Composer(props: Props) {
           ))}
         </div>
       )}
+      <Attachments
+        attachments={pending}
+        strings={strings}
+        locale={props.locale}
+        onRemove={(removed) => setPending((current) => current.filter((item) => item.id !== removed.id))}
+      />
       <div className="composer-row">
+        <button
+          type="button"
+          className="icon-button attach-button"
+          onClick={() => post({ type: "attach", pending: pending.length })}
+          title={strings.attach}
+          aria-label={strings.attach}
+        >
+          <span className="codicon codicon-attach" aria-hidden="true" />
+        </button>
         <textarea
           ref={textarea}
           value={text}
@@ -182,7 +213,7 @@ export function Composer(props: Props) {
           type="button"
           className="send-button"
           onClick={send}
-          disabled={!text.trim() || sending}
+          disabled={(!text.trim() && pending.length === 0) || sending}
           title={strings.send}
           aria-label={strings.send}
         >

@@ -1,4 +1,4 @@
-import type { Message } from "@br-ia/protocol";
+import type { Attachment, Message } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 
 /** Textes de l'interface, traduits côté extension puis transmis à la webview. */
@@ -30,6 +30,10 @@ export interface ChatStrings {
   mentionsYou: string;
   /** Modèle « {0} (vous) » pour ses propres messages. */
   you: string;
+  attach: string;
+  removeAttachment: string;
+  download: string;
+  diagramError: string;
 }
 
 export interface ChatMember {
@@ -62,7 +66,9 @@ export type ToWebview =
       locale: string;
     }
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
-  | { type: "sendResult"; ok: boolean };
+  | { type: "sendResult"; ok: boolean }
+  /** Fichiers envoyés au serveur, à joindre au prochain message de ce projet. */
+  | { type: "attached"; projectId: string; attachments: Attachment[] };
 
 /** Webview → extension. */
 export type FromWebview =
@@ -71,4 +77,6 @@ export type FromWebview =
   | { type: "connect" }
   | { type: "showLog" }
   | { type: "loadOlder" }
-  | { type: "send"; body: string; replyToId?: string; mentions: string[] };
+  | { type: "send"; body: string; replyToId?: string; mentions: string[]; attachmentIds: string[] }
+  | { type: "attach"; pending: number }
+  | { type: "openAttachment"; attachment: Attachment; save: boolean };

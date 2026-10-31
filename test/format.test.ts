@@ -1,7 +1,7 @@
 import type { Message } from "@br-ia/protocol";
 import { describe, expect, it } from "vitest";
 import type { ChatStrings } from "../src/webviewMessages";
-import { authorName, continuesPrevious, formatDay } from "../webview/format";
+import { authorName, continuesPrevious, formatDay, formatSize } from "../webview/format";
 
 const strings = { today: "Aujourd'hui", yesterday: "Hier" } as ChatStrings;
 
@@ -12,6 +12,7 @@ const message = (overrides: Partial<Message>): Message => ({
   body: "texte",
   replyTo: null,
   mentions: [],
+  attachments: [],
   createdAt: "2026-10-31T10:00:00.000Z",
   ...overrides,
 });
@@ -57,5 +58,13 @@ describe("authorName", () => {
   it("ajoute « (Vous) » à ses propres messages", () => {
     expect(authorName(author, withYou, "u1")).toBe("Doms (Vous)");
     expect(authorName(author, withYou, "u2")).toBe("Doms");
+  });
+});
+
+describe("formatSize", () => {
+  it("choisit l'unité et garde une décimale sous 10", () => {
+    expect(formatSize(850, "fr")).toBe("850 o");
+    expect(formatSize(1229, "fr")).toBe("1,2 Ko");
+    expect(formatSize(14 * 1024 * 1024, "fr")).toBe("14 Mo");
   });
 });

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { ListMessagesResponse, Message } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
+import { openAttachment, pickAndUpload } from "./attachments";
 import type { Connection } from "./connection";
 import type { Session } from "./session";
 import type { ChatStrings, ChatViewState, FromWebview, ToWebview } from "./webviewMessages";
@@ -120,7 +121,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         await this.#loadOlder();
         return;
       case "send":
-        await this.#send(message.body, message.replyToId, message.mentions);
+        await this.#send(message.body, message.replyToId, message.mentions, message.attachmentIds);
+        return;
+      case "attach":
+        await this.#attach(message.pending);
+        return;
+      case "openAttachment":
+        await openAttachment(this.api, message.attachment, message.save).catch((error) =>
+          this.#reportError(error),
+        );
         return;
     }
   }
@@ -160,7 +169,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
   }
 
-  async #send(body: string, replyToId: string | undefined, mentions: string[]): Promise<void> {
+  async #attach(pending: number): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId) return;
+    try {
+      const attachments = await pickAndUpload(this.api, projectId, pending);
+      if (attachments.length > 0) this.#postRaw({ type: "attached", projectId, attachments });
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #send(
+    body: string,
+    replyToId: string | undefined,
+    mentions: string[],
+    attachmentIds: string[],
+  ): Promise<void> {
     const projectId = this.#projectId;
     if (!projectId) return;
     try {
@@ -168,6 +193,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         body,
         replyToId,
         mentions,
+        attachmentIds,
       });
       this.#append(message);
       this.#postRaw({ type: "sendResult", ok: true });
@@ -225,9 +251,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const nonce = randomBytes(16).toString("base64");
     const script = webview.asWebviewUri(vscode.Uri.joinPath(dist, "webview.js"));
     const style = webview.asWebviewUri(vscode.Uri.joinPath(dist, "webview.css"));
+    // Mermaid n'est chargé qu'à l'affichage du premier diagramme.
+    const mermaid = webview.asWebviewUri(vscode.Uri.joinPath(dist, "mermaid.js"));
     const csp = [
       "default-src 'none'",
-      `style-src ${webview.cspSource}`,
+      // Les diagrammes Mermaid sont des SVG qui contiennent leurs propres styles.
+      `style-src ${webview.cspSource} 'unsafe-inline'`,
       `font-src ${webview.cspSource}`,
       `img-src ${webview.cspSource} https: data:`,
       `script-src 'nonce-${nonce}'`,
@@ -242,7 +271,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   <link rel="stylesheet" href="${style}">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root" data-mermaid="${mermaid}"></div>
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
@@ -278,5 +307,9 @@ function chatStrings(): ChatStrings {
     cuisinier: t("cook agent"),
     mentionsYou: t("Mentions you"),
     you: t("{0} (you)"),
+    attach: t("Attach files"),
+    removeAttachment: t("Remove attachment"),
+    download: t("Save as…"),
+    diagramError: t("This diagram could not be drawn."),
   };
 }

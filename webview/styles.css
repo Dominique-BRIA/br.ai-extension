@@ -517,3 +517,87 @@ button.link:hover {
   color: var(--vscode-editorSuggestWidget-selectedForeground);
   background: var(--vscode-editorSuggestWidget-selectedBackground);
 }
+
+/* Pièces jointes */
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.composer .attachments {
+  margin: 0 0 6px;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-editorGroup-border));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background);
+}
+
+.attachment-open {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 4px 2px 6px;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.attachment-open:disabled {
+  cursor: default;
+}
+
+.attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-size {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.attachment-open:not(:disabled):hover .attachment-name {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: underline;
+}
+
+.attach-button {
+  align-self: center;
+}
+
+/* Diagrammes Mermaid */
+
+.diagram {
+  margin: 4px 0;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  background: var(--vscode-textCodeBlock-background);
+}
+
+.diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.diagram-loading {
+  color: var(--vscode-descriptionForeground);
+}
+
+.diagram-error p {
+  margin: 4px 0;
+  color: var(--vscode-errorForeground);
+}

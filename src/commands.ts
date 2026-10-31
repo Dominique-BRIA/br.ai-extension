@@ -1,4 +1,11 @@
-import type { CreateInvitationResponse, Project, Team } from "@br-ia/protocol";
+import type {
+  CreateInvitationResponse,
+  Locale,
+  Project,
+  SessionsResponse,
+  Team,
+  User,
+} from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import type { ChatViewProvider } from "./chatView";
@@ -63,6 +70,91 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
     command("bria.signOut", async () => {
       await api.post("/auth/logout").catch(() => undefined);
       await session.clear();
+    }),
+
+    command("bria.editProfile", async () => {
+      const user = session.user;
+      const token = session.token;
+      if (!user || !token) return;
+      const displayName = await askName(vscode.l10n.t("Your name"), user.displayName);
+      if (!displayName) return;
+      const languages: { label: string; locale: Locale }[] = [
+        { label: "Français", locale: "fr" },
+        { label: "English", locale: "en" },
+      ];
+      const language = await vscode.window.showQuickPick(languages, {
+        title: vscode.l10n.t("Language of the emails br.ia sends you"),
+        placeHolder: languages.find((item) => item.locale === user.locale)?.label,
+      });
+      if (!language) return;
+      const updated = await api.patch<{ user: User }>("/me", { displayName, locale: language.locale });
+      await session.signedIn(token, updated.user);
+      await store.refresh();
+    }),
+
+    command("bria.manageMachines", async () => {
+      const { sessions } = await api.get<SessionsResponse>("/me/sessions");
+      const dateFormat = new Intl.DateTimeFormat(vscode.env.language, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      const picked = await vscode.window.showQuickPick(
+        sessions.map((machine) => ({
+          label: [machine.os, machine.editor].filter(Boolean).join(" · ") || vscode.l10n.t("Unknown machine"),
+          description: machine.current
+            ? vscode.l10n.t("this machine")
+            : machine.online
+              ? vscode.l10n.t("online")
+              : vscode.l10n.t("last seen {0}", dateFormat.format(new Date(machine.lastSeenAt))),
+          detail: vscode.l10n.t("Signed in on {0}", dateFormat.format(new Date(machine.createdAt))),
+          machine,
+        })),
+        {
+          title: vscode.l10n.t("Machines signed in to your account"),
+          placeHolder: vscode.l10n.t("Choose a machine to sign out"),
+        },
+      );
+      if (!picked) return;
+      const signOut = vscode.l10n.t("Sign out");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Sign out {0}?", picked.label),
+        { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use br.ia.") },
+        signOut,
+      );
+      if (answer !== signOut) return;
+      await api.delete(`/me/sessions/${picked.machine.id}`);
+      if (picked.machine.current) await session.clear();
+      else void vscode.window.showInformationMessage(vscode.l10n.t("The machine has been signed out."));
+    }),
+
+    command("bria.deleteAccount", async () => {
+      const user = session.user;
+      if (!user) return;
+      const proceed = vscode.l10n.t("Continue");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Delete your br.ia account?"),
+        {
+          modal: true,
+          detail: vscode.l10n.t(
+            'This cannot be undone. Your messages stay in your teams, signed "Former member". If you lead a team with other members, first make one of them lead.',
+          ),
+        },
+        proceed,
+      );
+      if (answer !== proceed) return;
+      const typed = await vscode.window.showInputBox({
+        title: vscode.l10n.t("Delete your br.ia account"),
+        prompt: vscode.l10n.t("To confirm, type your email address: {0}", user.email),
+        ignoreFocusOut: true,
+        validateInput: (value) =>
+          value.trim().toLowerCase() === user.email
+            ? undefined
+            : vscode.l10n.t("The address does not match."),
+      });
+      if (!typed) return;
+      await api.delete("/me", { confirmEmail: typed.trim() });
+      await session.clear();
+      void vscode.window.showInformationMessage(vscode.l10n.t("Your account has been deleted."));
     }),
 
     command("bria.connect", () => connection.connect()),

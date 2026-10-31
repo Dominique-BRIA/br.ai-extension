@@ -2,7 +2,7 @@
   "name": "br-ia",
   "displayName": "br.ia",
   "description": "%description%",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "publisher": "br-ia",
   "license": "UNLICENSED",
@@ -139,6 +139,23 @@
         "command": "bria.transferChef",
         "title": "%command.transferChef%",
         "category": "br.ia"
+      },
+      {
+        "command": "bria.editProfile",
+        "title": "%command.editProfile%",
+        "category": "br.ia",
+        "icon": "$(account)"
+      },
+      {
+        "command": "bria.manageMachines",
+        "title": "%command.manageMachines%",
+        "category": "br.ia",
+        "icon": "$(vm)"
+      },
+      {
+        "command": "bria.deleteAccount",
+        "title": "%command.deleteAccount%",
+        "category": "br.ia"
       }
     ],
     "menus": {
@@ -194,6 +211,18 @@
         {
           "command": "bria.refresh",
           "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.editProfile",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.manageMachines",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.deleteAccount",
+          "when": "bria.signedIn"
         }
       ],
       "view/title": [
@@ -213,9 +242,24 @@
           "group": "navigation@3"
         },
         {
+          "command": "bria.editProfile",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "9_account@1"
+        },
+        {
+          "command": "bria.manageMachines",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "9_account@2"
+        },
+        {
           "command": "bria.signOut",
           "when": "view == bria.teams && bria.signedIn",
-          "group": "9_account"
+          "group": "9_account@3"
+        },
+        {
+          "command": "bria.deleteAccount",
+          "when": "view == bria.teams && bria.signedIn",
+          "group": "9_account@4"
         },
         {
           "command": "bria.connect",
@@ -321,6 +365,7 @@
   "dependencies": {
     "@br-ia/protocol": "file:../backend/packages/protocol",
     "@vscode/codicons": "^0.0.46-24",
+    "mermaid": "^11.17.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",

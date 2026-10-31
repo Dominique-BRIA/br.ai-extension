@@ -1,6 +1,7 @@
 import type { Message } from "@br-ia/protocol";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import type { ChatStrings, ChatViewState } from "../src/webviewMessages";
+import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
 import { authorName, continuesPrevious, formatDay, formatTime, sameDay } from "./format";
 import { Markdown } from "./Markdown";
@@ -106,7 +107,8 @@ export function Chat({ state, strings, locale, sentCount }: Props) {
                     <span className="quoted-text">{message.replyTo.excerpt}</span>
                   </div>
                 )}
-                <Markdown text={message.body} />
+                {message.body && <Markdown text={message.body} diagramError={strings.diagramError} />}
+                <Attachments attachments={message.attachments} strings={strings} locale={locale} />
                 <div className="message-actions">
                   <button
                     type="button"
@@ -131,6 +133,7 @@ export function Chat({ state, strings, locale, sentCount }: Props) {
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         strings={strings}
+        locale={locale}
         sentCount={sentCount}
       />
     </div>
