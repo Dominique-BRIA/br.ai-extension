@@ -4,6 +4,7 @@ import type { Api } from "../api";
 import type { Connection } from "../connection";
 import type { WorkspaceStore } from "../workspaceStore";
 import type { Checkpoints } from "./checkpoints";
+import type { ProjectFolders } from "./projectFolders";
 
 /** Les commandes du projet ouvert, tenues à jour par les événements du serveur. */
 export class OrdersStore implements vscode.Disposable {
@@ -123,8 +124,12 @@ export class OrdersTreeProvider implements vscode.TreeDataProvider<OrderNode>, v
     private readonly workspace: WorkspaceStore,
     private readonly checkpoints: Checkpoints,
     private readonly currentProject: () => string | undefined,
+    private readonly folders: ProjectFolders,
   ) {
-    this.#subscriptions = [store.onDidChange(() => void this.refresh())];
+    this.#subscriptions = [
+      store.onDidChange(() => void this.refresh()),
+      folders.onDidChange(() => this.#onDidChangeTreeData.fire()),
+    ];
   }
 
   async refresh(): Promise<void> {
@@ -174,7 +179,13 @@ export class OrdersTreeProvider implements vscode.TreeDataProvider<OrderNode>, v
     );
     item.id = `order:${order.id}:${order.status}`;
     item.iconPath = new vscode.ThemeIcon(ICONS[order.status]);
-    item.description = [statusLabel(order.status), order.machine?.displayName].filter(Boolean).join(" · ");
+    const noFolder = order.status === "pending" && !this.folders.get(order.projectId);
+    item.description = [
+      noFolder ? vscode.l10n.t("waiting for a folder on this machine") : statusLabel(order.status),
+      order.machine?.displayName,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     item.tooltip = new vscode.MarkdownString(
       [
         `**${vscode.l10n.t("Order {0}", order.number)} · ${order.title}**`,

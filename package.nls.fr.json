@@ -52,5 +52,8 @@
   "config.permissionMode.autoEdit": "Les modifications s'appliquent directement ; vous validez chaque commande.",
   "config.permissionMode.auto": "Modifications et commandes s'exécutent directement, sauf les commandes à risque.",
   "config.permissionMode.plan": "Le cuisinier lit et propose, mais ne modifie rien.",
-  "config.lendMachine": "Laisser le cuisinier travailler sur cette machine pour les commandes de vos coéquipiers quand ils ne sont pas connectés."
+  "config.lendMachine": "Laisser le cuisinier travailler sur cette machine pour les commandes de vos coéquipiers quand ils ne sont pas connectés.",
+  "command.showCookTerminal": "Voir ce que lance le cuisinier",
+  "command.openChatInEditor": "Ouvrir le chat en grand",
+  "config.showCookTerminal": "Ouvrir automatiquement le terminal du cuisinier quand il lance une commande sur cette machine."
 }

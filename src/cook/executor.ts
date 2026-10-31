@@ -8,6 +8,7 @@ import type { Checkpoints } from "./checkpoints";
 import type { ProjectFolders } from "./projectFolders";
 import type { ProposalReview } from "./proposals";
 import { dangerousCommand, IGNORED_DIRECTORIES, resolveInProject } from "./safety";
+import type { CookTerminal } from "./terminal";
 
 export type PermissionMode = "manual" | "autoEdit" | "auto" | "plan";
 
@@ -39,6 +40,7 @@ export class CookExecutor implements vscode.Disposable {
     private readonly folders: ProjectFolders,
     private readonly proposals: ProposalReview,
     private readonly checkpoints: Checkpoints,
+    private readonly terminal: CookTerminal,
     private readonly log: vscode.LogOutputChannel,
     private readonly describeOrder: (orderId: string) => string,
   ) {
@@ -52,6 +54,7 @@ export class CookExecutor implements vscode.Disposable {
         outcome = { ok: false, output: `Erreur : ${(error as Error).message}` };
       }
       this.log.info(`Cuisinier : ${event.tool} → ${outcome.ok ? "fait" : "refusé ou en échec"}`);
+      if (event.tool !== "run_command") this.terminal.step(describe(event.tool, event.input, outcome));
       connection.send({
         type: "tool.result",
         callId: event.callId,
@@ -256,7 +259,14 @@ export class CookExecutor implements vscode.Disposable {
       );
       if (answer !== run) return refused("Commande refusée par le membre.");
     }
-    return runShell(command, root, timeoutSeconds * 1000);
+    if (vscode.workspace.getConfiguration("bria").get<boolean>("showCookTerminal", true))
+      this.terminal.show();
+    this.terminal.commandStarted(command, root);
+    const outcome = await runShell(command, root, timeoutSeconds * 1000, (chunk) =>
+      this.terminal.output(chunk),
+    );
+    this.terminal.commandEnded(outcome.code);
+    return outcome;
   }
 
   async #environment(): Promise<Outcome> {
@@ -286,12 +296,40 @@ export class CookExecutor implements vscode.Disposable {
   }
 }
 
+/** Une ligne lisible pour le terminal du cuisinier. */
+function describe(tool: string, input: Record<string, unknown>, outcome: Outcome): string {
+  const path = typeof input.path === "string" ? input.path : "";
+  const failed = outcome.ok ? "" : ` — ${outcome.output.split("\n")[0]}`;
+  switch (tool) {
+    case "read_file":
+      return `${vscode.l10n.t("Read")} ${path}${failed}`;
+    case "list_dir":
+      return `${vscode.l10n.t("Listed")} ${path || "."}${failed}`;
+    case "search":
+      return `${vscode.l10n.t("Searched")} « ${String(input.query)} »${failed}`;
+    case "write_file":
+    case "edit_file":
+      return outcome.ok
+        ? `${vscode.l10n.t("Changed")} ${path}`
+        : `${vscode.l10n.t("Not changed")} ${path}${failed}`;
+    default:
+      return `${tool}${failed}`;
+  }
+}
+
 /** Lance une commande et renvoie sa sortie (standard et erreurs) et son code de sortie. */
-function runShell(command: string, cwd: string, timeoutMs: number): Promise<Outcome> {
+function runShell(
+  command: string,
+  cwd: string,
+  timeoutMs: number,
+  onOutput: (chunk: string) => void,
+): Promise<Outcome & { code: number | null }> {
   return new Promise((resolve) => {
     let output = "";
     const append = (chunk: Buffer) => {
-      output += chunk.toString("utf8");
+      const text = chunk.toString("utf8");
+      onOutput(text);
+      output += text;
       if (output.length > MAX_OUTPUT * 2) output = output.slice(-MAX_OUTPUT);
     };
     const child = spawn(command, { cwd, shell: true, windowsHide: true, env: process.env });
@@ -303,12 +341,16 @@ function runShell(command: string, cwd: string, timeoutMs: number): Promise<Outc
     child.stderr.on("data", append);
     child.on("error", (error) => {
       clearTimeout(timer);
-      resolve({ ok: false, output: `Impossible de lancer la commande : ${error.message}` });
+      resolve({ ok: false, code: null, output: `Impossible de lancer la commande : ${error.message}` });
     });
     child.on("close", (code) => {
       clearTimeout(timer);
       const tail = output.length > MAX_OUTPUT ? `[…]\n${output.slice(-MAX_OUTPUT)}` : output;
-      resolve({ ok: code === 0, output: `Code de sortie : ${code}\n${tail.trim() || "(aucune sortie)"}` });
+      resolve({
+        ok: code === 0,
+        code,
+        output: `Code de sortie : ${code}\n${tail.trim() || "(aucune sortie)"}`,
+      });
     });
   });
 }

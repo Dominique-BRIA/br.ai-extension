@@ -31,6 +31,13 @@
           "title": "br.ia",
           "icon": "media/bria.svg"
         }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "bria-chat",
+          "title": "br.ia",
+          "icon": "media/bria.svg"
+        }
       ]
     },
     "views": {
@@ -42,12 +49,16 @@
         },
         {
           "id": "bria.memory",
-          "name": "%view.memory%"
+          "name": "%view.memory%",
+          "visibility": "collapsed"
         },
         {
           "id": "bria.orders",
-          "name": "%view.orders%"
-        },
+          "name": "%view.orders%",
+          "visibility": "collapsed"
+        }
+      ],
+      "bria-chat": [
         {
           "type": "webview",
           "id": "bria.chat",
@@ -259,6 +270,18 @@
         "title": "%command.proposal.reject%",
         "category": "br.ia",
         "icon": "$(close)"
+      },
+      {
+        "command": "bria.showCookTerminal",
+        "title": "%command.showCookTerminal%",
+        "category": "br.ia",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "bria.openChatInEditor",
+        "title": "%command.openChatInEditor%",
+        "category": "br.ia",
+        "icon": "$(link-external)"
       }
     ],
     "menus": {
@@ -390,6 +413,14 @@
         {
           "command": "bria.orders.refresh",
           "when": "bria.projectOpen"
+        },
+        {
+          "command": "bria.showCookTerminal",
+          "when": "bria.signedIn"
+        },
+        {
+          "command": "bria.openChatInEditor",
+          "when": "bria.signedIn"
         }
       ],
       "view/title": [
@@ -472,6 +503,16 @@
           "command": "bria.toggleLending",
           "when": "view == bria.orders && bria.signedIn",
           "group": "9_machine@1"
+        },
+        {
+          "command": "bria.showCookTerminal",
+          "when": "view == bria.orders && bria.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "bria.openChatInEditor",
+          "when": "view == bria.chat && bria.signedIn",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [
@@ -618,6 +659,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "%config.lendMachine%"
+        },
+        "bria.showCookTerminal": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.showCookTerminal%"
         }
       }
     },

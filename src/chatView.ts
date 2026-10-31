@@ -19,6 +19,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   readonly onDidOpenProject = this.#onDidOpenProject.event;
   readonly #subscriptions: vscode.Disposable[];
   #view: vscode.WebviewView | undefined;
+  /** Le chat ouvert en grand dans un onglet de l'éditeur. */
+  #panel: vscode.WebviewPanel | undefined;
   #projectId: string | undefined;
   #messages: Message[] = [];
   #hasMore = false;
@@ -80,14 +82,42 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   /** Fait défiler le fil jusqu'à un message chargé ; renvoie faux s'il n'est pas chargé. */
   async reveal(messageId: string): Promise<boolean> {
     if (!this.#messages.some((message) => message.id === messageId)) return false;
-    await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
+    if (this.#panel) this.#panel.reveal();
+    else await vscode.commands.executeCommand(`${ChatViewProvider.viewId}.focus`);
     this.#postRaw({ type: "reveal", messageId });
     return true;
   }
 
   /** Vrai si la vue est visible et montre ce projet. */
   isShowing(projectId: string): boolean {
-    return Boolean(this.#view?.visible) && this.#projectId === projectId;
+    return (Boolean(this.#view?.visible) || Boolean(this.#panel?.visible)) && this.#projectId === projectId;
+  }
+
+  /** Ouvre le chat en grand, dans un onglet de l'éditeur. */
+  openInEditor(): void {
+    if (this.#panel) {
+      this.#panel.reveal();
+      return;
+    }
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
+    const panel = vscode.window.createWebviewPanel("bria.chatPanel", "br.ia", vscode.ViewColumn.Active, {
+      enableScripts: true,
+      localResourceRoots: [dist],
+      retainContextWhenHidden: true,
+    });
+    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "bria.svg");
+    panel.webview.html = this.#html(panel.webview, dist);
+    this.#panel = panel;
+    const subscriptions = [
+      panel.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
+      panel.onDidChangeViewState(() => {
+        if (panel.visible) this.#post();
+      }),
+    ];
+    panel.onDidDispose(() => {
+      for (const subscription of subscriptions) subscription.dispose();
+      this.#panel = undefined;
+    });
   }
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -110,6 +140,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   dispose(): void {
     for (const subscription of this.#subscriptions) subscription.dispose();
+    this.#panel?.dispose();
     this.#onDidOpenProject.dispose();
   }
 
@@ -263,6 +294,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   #postRaw(message: ToWebview): void {
     void this.#view?.webview.postMessage(message);
+    void this.#panel?.webview.postMessage(message);
   }
 
   #reportError(error: unknown): void {

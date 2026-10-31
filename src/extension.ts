@@ -10,6 +10,7 @@ import { CookExecutor } from "./cook/executor";
 import { OrdersStore, OrdersTreeProvider } from "./cook/orders";
 import { ProjectFolders } from "./cook/projectFolders";
 import { ProposalReview } from "./cook/proposals";
+import { CookTerminal } from "./cook/terminal";
 import { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
 import { watchMentions } from "./notifications";
@@ -39,8 +40,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const proposals = new ProposalReview();
   const checkpoints = new Checkpoints(vscode.Uri.joinPath(context.globalStorageUri, "checkpoints").fsPath);
   const orders = new OrdersStore(api, connection, log);
-  const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId);
-  const executor = new CookExecutor(connection, folders, proposals, checkpoints, log, (id) =>
+  const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId, folders);
+  const cookTerminal = new CookTerminal();
+  const executor = new CookExecutor(connection, folders, proposals, checkpoints, cookTerminal, log, (id) =>
     orders.describe(id),
   );
   const memoryTree = new MemoryTreeProvider(memory, store);
@@ -79,6 +81,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     memory,
     folders,
     proposals,
+    cookTerminal,
+    vscode.commands.registerCommand("bria.showCookTerminal", () => cookTerminal.show(false)),
+    vscode.commands.registerCommand("bria.openChatInEditor", () => chat.openInEditor()),
     orders,
     ordersTree,
     executor,
