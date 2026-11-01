@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { ToWebview } from "../src/webviewMessages";
 import { Chat } from "./Chat";
+import type { Screen } from "./Header";
 import { Home } from "./Home";
+import { Notifications } from "./Notifications";
+import { Settings } from "./Settings";
 import { SignIn } from "./SignIn";
 import { post } from "./vscodeApi";
 
@@ -14,6 +17,7 @@ type Snapshot = Extract<ToWebview, { type: "state" }>;
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [sentCount, setSentCount] = useState(0);
+  const [screen, setScreen] = useState<Screen>("main");
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<ToWebview>) => {
@@ -26,7 +30,8 @@ function App() {
   }, []);
 
   if (!snapshot) return null;
-  const { state, strings, connection, locale, logoUri, wordmarkUri } = snapshot;
+  const { state, strings, connection, locale, logoUri, wordmarkUri, notifications, unread, settings } =
+    snapshot;
 
   if (state.view === "signedOut") return <SignIn wordmarkUri={wordmarkUri} strings={strings} />;
 
@@ -53,27 +58,52 @@ function App() {
     </div>
   );
 
+  const back = () => setScreen("main");
+  let content: React.ReactNode;
+  if (screen === "notifications") {
+    content = (
+      <Notifications
+        items={notifications}
+        unread={unread}
+        strings={strings}
+        locale={locale}
+        onBack={back}
+        onOpen={back}
+      />
+    );
+  } else if (screen === "settings" && settings) {
+    content = <Settings settings={settings} strings={strings} locale={locale} onBack={back} />;
+  } else if (state.view === "home") {
+    content = (
+      <Home
+        user={state.user}
+        teams={state.teams}
+        logoUri={logoUri}
+        connected={connected}
+        unread={unread}
+        onScreen={setScreen}
+        strings={strings}
+      />
+    );
+  } else {
+    content = (
+      <Chat
+        state={state}
+        strings={strings}
+        locale={locale}
+        logoUri={logoUri}
+        connected={connected}
+        sentCount={sentCount}
+        unread={unread}
+        onScreen={setScreen}
+      />
+    );
+  }
+
   return (
     <>
       {banner}
-      {state.view === "home" ? (
-        <Home
-          user={state.user}
-          teams={state.teams}
-          logoUri={logoUri}
-          connected={connected}
-          strings={strings}
-        />
-      ) : (
-        <Chat
-          state={state}
-          strings={strings}
-          locale={locale}
-          logoUri={logoUri}
-          connected={connected}
-          sentCount={sentCount}
-        />
-      )}
+      {content}
     </>
   );
 }

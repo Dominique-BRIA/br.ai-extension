@@ -1,9 +1,12 @@
 import type {
   Attachment,
+  Locale,
+  MachineSession,
   MemoryItem,
   MemoryStatus,
   MemoryType,
   Message,
+  Notification,
   Order,
   OrderStatus,
 } from "@br-ia/protocol";
@@ -44,7 +47,6 @@ export interface ChatStrings {
   /** « {0}/{1} en ligne » */
   online: string;
   refresh: string;
-  more: string;
   tabChat: string;
   tabMemory: string;
   tabOrders: string;
@@ -203,6 +205,38 @@ export interface ChatStrings {
   leaveTeam: string;
   removeMember: string;
   makeChef: string;
+  /** Notifications */
+  notificationsTitle: string;
+  noNotifications: string;
+  /** « {0} vous a mentionné » */
+  notifMention: string;
+  notifReply: string;
+  newBadge: string;
+  /** Réglages */
+  settingsTitle: string;
+  profileSection: string;
+  emailLanguage: string;
+  save: string;
+  saved: string;
+  machineSection: string;
+  lendMachineDetail: string;
+  showTerminalLabel: string;
+  notifyLabel: string;
+  localMemorySection: string;
+  localMemoryDetail: string;
+  machinesSection: string;
+  thisMachine: string;
+  serverSection: string;
+  serverUrlLabel: string;
+  deleteAccount: string;
+  /** « Version {0} » */
+  version: string;
+  /** Résumé d'absence */
+  catchUpTitle: string;
+  /** « {0} nouveau(x) message(s) » */
+  catchUpCount: string;
+  catchUpLoading: string;
+  close: string;
 }
 
 export interface HomeTeam {
@@ -263,7 +297,31 @@ export type ChatViewState =
       /** Un dossier est associé à ce projet sur cette machine. */
       folderLinked: boolean;
       permissionMode: PermissionMode;
+      /** Résumé « pendant votre absence », affiché en haut du chat jusqu'à ce qu'on le ferme. */
+      catchUp: CatchUp | null;
     };
+
+export interface CatchUp {
+  /** Nombre de messages des autres depuis la dernière visite. */
+  count: number;
+  /** Résumé en Markdown, ou `null` pendant qu'il se prépare. */
+  summary: string | null;
+  since: string;
+}
+
+/** Les réglages du membre et de cette machine. */
+export interface PanelSettings {
+  displayName: string;
+  email: string;
+  locale: Locale;
+  permissionMode: PermissionMode;
+  lendMachine: boolean;
+  showCookTerminal: boolean;
+  notifyMentions: boolean;
+  serverUrl: string;
+  version: string;
+  localMemoryFile: string;
+}
 
 /** Extension → webview. */
 export type ToWebview =
@@ -276,7 +334,13 @@ export type ToWebview =
       logoUri: string;
       /** Le logo complet, avec le nom et la devise, pour l'écran de connexion. */
       wordmarkUri: string;
+      notifications: Notification[];
+      unread: number;
+      /** Absent hors connexion. */
+      settings: PanelSettings | null;
     }
+  /** Les machines connectées au compte, pour les réglages. */
+  | { type: "machines"; machines: MachineSession[] }
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
   | { type: "sendResult"; ok: boolean }
   /** Fichiers envoyés au serveur, à joindre au prochain message de ce projet. */
@@ -304,11 +368,11 @@ export type WebviewCommand =
   | "newNote"
   | "invite"
   | "toggleLending"
-  | "menu"
   | "leaveTeam"
   | "editProfile"
   | "manageMachines"
-  | "signOut";
+  | "signOut"
+  | "deleteAccount";
 
 /** Webview → extension. */
 export type FromWebview =
@@ -322,6 +386,15 @@ export type FromWebview =
   | { type: "invitation"; action: "load" | "create" }
   | { type: "copy"; text: string }
   | { type: "memberAction"; userId: string; action: "remove" | "transfer" }
+  | { type: "updateProfile"; displayName?: string; locale?: Locale }
+  | { type: "setSetting"; key: "lendMachine" | "showCookTerminal" | "notifyMentions"; value: boolean }
+  | { type: "setServerUrl"; url: string }
+  | { type: "openLocalMemory" }
+  | { type: "loadMachines" }
+  | { type: "signOutMachine"; sessionId: string }
+  | { type: "notificationsSeen" }
+  | { type: "openNotification"; projectId: string; messageId: string | null }
+  | { type: "dismissCatchUp" }
   | { type: "setPermissionMode"; mode: PermissionMode }
   | { type: "connect" }
   | { type: "showLog" }

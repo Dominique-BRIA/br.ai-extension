@@ -1,10 +1,10 @@
 import type { MemoryType, Message, MessageAuthor } from "@br-ia/protocol";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessages";
+import type { CatchUp, ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessages";
 import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
 import { authorName, continuesPrevious, formatDay, formatTime, initials, sameDay } from "./format";
-import { BottomNav, Header, type Tab } from "./Header";
+import { BottomNav, Header, type Screen, type Tab } from "./Header";
 import { Markdown } from "./Markdown";
 import { MemoryTab } from "./MemoryTab";
 import { activeOrder, OrderPill, OrdersTab } from "./Orders";
@@ -27,6 +27,41 @@ interface Props {
   logoUri: string;
   connected: boolean;
   sentCount: number;
+  unread: number;
+  onScreen(screen: Screen): void;
+}
+
+/** Résumé « pendant votre absence », en haut du fil, jusqu'à ce que le membre le ferme. */
+function CatchUpCard({ catchUp, strings }: { catchUp: CatchUp; strings: ChatStrings }) {
+  return (
+    <article className="catch-up" aria-live="polite">
+      <div className="catch-up-head">
+        <span className="codicon codicon-history" aria-hidden="true" />
+        <span className="catch-up-title">{strings.catchUpTitle}</span>
+        {catchUp.count > 0 && (
+          <span className="meta">{strings.catchUpCount.replace("{0}", String(catchUp.count))}</span>
+        )}
+        <span className="spacer" />
+        <button
+          type="button"
+          className="icon-button"
+          title={strings.close}
+          aria-label={strings.close}
+          onClick={() => post({ type: "dismissCatchUp" })}
+        >
+          <span className="codicon codicon-close" aria-hidden="true" />
+        </button>
+      </div>
+      {catchUp.summary ? (
+        <Markdown text={catchUp.summary} diagramError={strings.diagramError} />
+      ) : (
+        <p className="meta">
+          <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />{" "}
+          {strings.catchUpLoading}
+        </p>
+      )}
+    </article>
+  );
 }
 
 /** Initiales d'un membre, ou « IA » pour les agents. */
@@ -36,7 +71,7 @@ function authorInitials(author: MessageAuthor, strings: ChatStrings): string {
 }
 
 /** Le panneau d'un projet : en-tête, l'onglet choisi, puis la navigation du bas. */
-export function Chat({ state, strings, locale, logoUri, connected, sentCount }: Props) {
+export function Chat({ state, strings, locale, logoUri, connected, sentCount, unread, onScreen }: Props) {
   const [tab, setTab] = useState<Tab>("chat");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -103,6 +138,8 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
         onlineCount={state.onlineCount}
         memberCount={state.members.length}
         connected={connected}
+        unread={unread}
+        onScreen={onScreen}
         strings={strings}
       />
 
@@ -135,6 +172,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
       {tab === "chat" && (
         <>
           <div className="messages" ref={list} onScroll={onScroll}>
+            {state.catchUp && <CatchUpCard catchUp={state.catchUp} strings={strings} />}
             {current && <OrderPill order={current} strings={strings} onOpen={() => setTab("orders")} />}
 
             {state.hasMore && (

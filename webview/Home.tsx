@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { ChatStrings, HomeForm, HomeTeam, ToWebview } from "../src/webviewMessages";
 import { initials } from "./format";
+import { AccountActions, type Screen } from "./Header";
 import { post } from "./vscodeApi";
 
 interface Props {
@@ -8,11 +9,13 @@ interface Props {
   teams: HomeTeam[] | null;
   logoUri: string;
   connected: boolean;
+  unread: number;
+  onScreen(screen: Screen): void;
   strings: ChatStrings;
 }
 
 /** Accueil : les équipes et leurs projets, la création ou l'arrivée dans une équipe, et le compte. */
-export function Home({ user, teams, logoUri, connected, strings }: Props) {
+export function Home({ user, teams, logoUri, connected, unread, onScreen, strings }: Props) {
   const [open, setOpen] = useState<string | null>(null);
 
   return (
@@ -32,15 +35,7 @@ export function Home({ user, teams, logoUri, connected, strings }: Props) {
           </div>
         </div>
         <div className="header-actions">
-          <button
-            type="button"
-            className="icon-button"
-            title={strings.refresh}
-            aria-label={strings.refresh}
-            onClick={() => post({ type: "refresh" })}
-          >
-            <span className="codicon codicon-refresh" aria-hidden="true" />
-          </button>
+          <AccountActions unread={unread} onScreen={onScreen} strings={strings} />
         </div>
       </header>
 
@@ -179,19 +174,11 @@ export function Home({ user, teams, logoUri, connected, strings }: Props) {
             </div>
           </div>
           <div className="order-item-actions">
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => post({ type: "command", command: "editProfile" })}
-            >
+            <button type="button" className="ghost-button" onClick={() => onScreen("settings")}>
               <span className="codicon codicon-edit" aria-hidden="true" />
               {strings.editProfile}
             </button>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => post({ type: "command", command: "manageMachines" })}
-            >
+            <button type="button" className="ghost-button" onClick={() => onScreen("settings")}>
               <span className="codicon codicon-vm" aria-hidden="true" />
               {strings.machines}
             </button>

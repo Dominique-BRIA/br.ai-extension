@@ -65,6 +65,13 @@ button:disabled {
   opacity: 0.6;
 }
 
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 button.link {
   display: inline-flex;
   align-items: center;
@@ -1990,6 +1997,216 @@ button.link:hover {
 
 .leave {
   margin-top: 12px;
+}
+
+/* Écrans secondaires : notifications et réglages */
+
+.screen-header {
+  justify-content: flex-start;
+}
+
+.screen-title {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.icon-button.bell {
+  position: relative;
+}
+
+.icon-button.bell .nav-count {
+  top: -3px;
+  left: 14px;
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  text-align: left;
+}
+
+.notification:hover {
+  border-color: var(--bria-accent);
+}
+
+.notification.fresh {
+  border-left: 3px solid var(--bria-accent);
+}
+
+.notification-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notification-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notification-body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.settings-section {
+  margin-bottom: 6px;
+}
+
+.settings-section > .subtitle {
+  margin-top: 16px;
+}
+
+.settings-section .team-card > .meta {
+  margin: 4px 0 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.setting-label {
+  font-weight: 600;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-foreground) 25%, transparent);
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  content: "";
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--bria-accent-strong);
+}
+
+.switch:checked::after {
+  transform: translateX(14px);
+}
+
+.switch:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.segmented button {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  background: none;
+}
+
+.segmented button.active {
+  color: var(--bria-on-accent);
+  background: var(--bria-accent-strong);
+  font-weight: 600;
+}
+
+.setting-form .field {
+  margin-top: 0;
+}
+
+.setting-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--bria-success);
+  font-size: 0.9em;
+}
+
+.mode-list {
+  margin: 6px -8px 0;
+}
+
+.secondary-button.danger {
+  border-color: color-mix(in srgb, var(--bria-danger) 50%, var(--border));
+  color: var(--bria-danger);
+}
+
+.version {
+  margin: 16px 0 4px;
+  text-align: center;
+}
+
+/* Résumé d'absence */
+
+.catch-up {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--bria-accent) 45%, var(--border));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--bria-accent) 7%, var(--card));
+}
+
+.catch-up-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--bria-accent);
+}
+
+.catch-up-title {
+  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {

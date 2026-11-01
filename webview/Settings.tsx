@@ -1,0 +1,257 @@
+import type { Locale, MachineSession } from "@br-ia/protocol";
+import { type FormEvent, useEffect, useState } from "react";
+import type { PermissionMode } from "../src/cook/executor";
+import type { ChatStrings, PanelSettings, ToWebview } from "../src/webviewMessages";
+import { formatRelative } from "./format";
+import { ScreenHeader } from "./Notifications";
+import { post } from "./vscodeApi";
+
+interface Props {
+  settings: PanelSettings;
+  strings: ChatStrings;
+  locale: string;
+  onBack(): void;
+}
+
+const MODES: PermissionMode[] = ["manual", "autoEdit", "auto", "plan"];
+
+/** Les réglages du compte et de cette machine, sans quitter le panneau. */
+export function Settings({ settings, strings, locale, onBack }: Props) {
+  const [name, setName] = useState(settings.displayName);
+  const [server, setServer] = useState(settings.serverUrl);
+  const [machines, setMachines] = useState<MachineSession[] | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      if (event.data.type === "machines") setMachines(event.data.machines);
+    };
+    window.addEventListener("message", onMessage);
+    post({ type: "loadMachines" });
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!savedField) return;
+    const timer = setTimeout(() => setSavedField(null), 2000);
+    return () => clearTimeout(timer);
+  }, [savedField]);
+
+  const saveName = (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim() || name.trim() === settings.displayName) return;
+    post({ type: "updateProfile", displayName: name.trim() });
+    setSavedField("name");
+  };
+
+  const saveServer = (event: FormEvent) => {
+    event.preventDefault();
+    if (server.trim() === settings.serverUrl) return;
+    post({ type: "setServerUrl", url: server });
+    setSavedField("server");
+  };
+
+  const toggle = (
+    key: "lendMachine" | "showCookTerminal" | "notifyMentions",
+    label: string,
+    detail?: string,
+  ) => (
+    <label className="setting-row">
+      <span className="setting-text">
+        <span className="setting-label">{label}</span>
+        {detail && <span className="meta">{detail}</span>}
+      </span>
+      <input
+        type="checkbox"
+        className="switch"
+        checked={settings[key]}
+        onChange={(event) => post({ type: "setSetting", key, value: event.target.checked })}
+      />
+    </label>
+  );
+
+  const savedLabel = (field: string) =>
+    savedField === field && (
+      <span className="saved" role="status">
+        <span className="codicon codicon-check" aria-hidden="true" />
+        {strings.saved}
+      </span>
+    );
+
+  return (
+    <div className="panel-root">
+      <ScreenHeader title={strings.settingsTitle} strings={strings} onBack={onBack} />
+      <div className="tab-body">
+        <Section icon="account" title={strings.profileSection}>
+          <form className="setting-form" onSubmit={saveName}>
+            <label className="field">
+              <span className="field-label">{strings.nameLabel}</span>
+              <span className="field-box">
+                <span className="codicon codicon-person" aria-hidden="true" />
+                <input value={name} maxLength={60} onChange={(event) => setName(event.target.value)} />
+              </span>
+            </label>
+            <div className="setting-actions">
+              {savedLabel("name")}
+              <button
+                type="submit"
+                className="secondary-button"
+                disabled={name.trim() === settings.displayName}
+              >
+                {strings.save}
+              </button>
+            </div>
+          </form>
+          <p className="meta">{settings.email}</p>
+          <div className="setting-row">
+            <span className="setting-label">{strings.emailLanguage}</span>
+            <fieldset className="segmented" aria-label={strings.emailLanguage}>
+              {(["fr", "en"] as Locale[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={settings.locale === item}
+                  className={settings.locale === item ? "active" : ""}
+                  onClick={() => post({ type: "updateProfile", locale: item })}
+                >
+                  {item === "fr" ? "Français" : "English"}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+        </Section>
+
+        <Section icon="vm" title={strings.machineSection}>
+          <span className="setting-label">{strings.modeTitle}</span>
+          <fieldset className="mode-list" aria-label={strings.modeTitle}>
+            {MODES.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={settings.permissionMode === mode}
+                className={settings.permissionMode === mode ? "mode-option active" : "mode-option"}
+                onClick={() => post({ type: "setPermissionMode", mode })}
+              >
+                <span
+                  className={`codicon codicon-${settings.permissionMode === mode ? "pass-filled" : "circle-large-outline"}`}
+                  aria-hidden="true"
+                />
+                <span className="mode-option-text">
+                  <span className="mode-option-name">{strings.modes[mode]}</span>
+                  <span className="meta">{strings.modeDetails[mode]}</span>
+                </span>
+              </button>
+            ))}
+          </fieldset>
+          {toggle("lendMachine", strings.lendMachine, strings.lendMachineDetail)}
+          {toggle("showCookTerminal", strings.showTerminalLabel)}
+          {toggle("notifyMentions", strings.notifyLabel)}
+        </Section>
+
+        <Section icon="book" title={strings.localMemorySection}>
+          <p className="meta">{strings.localMemoryDetail}</p>
+          <button type="button" className="document-row" onClick={() => post({ type: "openLocalMemory" })}>
+            <span className="document-icon">
+              <span className="codicon codicon-markdown" aria-hidden="true" />
+            </span>
+            <span className="document-text">
+              <span className="document-name">{settings.localMemoryFile}</span>
+            </span>
+            <span className="codicon codicon-go-to-file" aria-hidden="true" />
+          </button>
+        </Section>
+
+        <Section icon="device-desktop" title={strings.machinesSection}>
+          {machines === null && <p className="meta">{strings.loading}</p>}
+          {machines?.map((machine) => (
+            <article key={machine.id} className="person-row">
+              <span className="agent-icon accent">
+                <span
+                  className={`codicon codicon-${machine.os === "macos" ? "device-desktop" : "vm"}`}
+                  aria-hidden="true"
+                />
+              </span>
+              <div className="person-text">
+                <div className="person-name">
+                  {[machine.os, machine.editor].filter(Boolean).join(" · ")}
+                  {machine.current && <span className="badge">{strings.thisMachine}</span>}
+                </div>
+                <div className="meta">
+                  {machine.online
+                    ? strings.onlineNow
+                    : strings.seenAgo.replace("{0}", formatRelative(machine.lastSeenAt, locale))}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                title={strings.signOut}
+                aria-label={strings.signOut}
+                onClick={() => post({ type: "signOutMachine", sessionId: machine.id })}
+              >
+                <span className="codicon codicon-sign-out" aria-hidden="true" />
+              </button>
+            </article>
+          ))}
+        </Section>
+
+        <Section icon="server" title={strings.serverSection}>
+          <form className="setting-form" onSubmit={saveServer}>
+            <label className="field">
+              <span className="field-label">{strings.serverUrlLabel}</span>
+              <span className="field-box">
+                <span className="codicon codicon-globe" aria-hidden="true" />
+                <input className="mono" value={server} onChange={(event) => setServer(event.target.value)} />
+              </span>
+            </label>
+            <div className="setting-actions">
+              {savedLabel("server")}
+              <button
+                type="submit"
+                className="secondary-button"
+                disabled={server.trim() === settings.serverUrl}
+              >
+                {strings.save}
+              </button>
+            </div>
+          </form>
+        </Section>
+
+        <Section icon="account" title={strings.account}>
+          <div className="button-row">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => post({ type: "command", command: "signOut" })}
+            >
+              <span className="codicon codicon-sign-out" aria-hidden="true" />
+              {strings.signOut}
+            </button>
+            <button
+              type="button"
+              className="secondary-button danger"
+              onClick={() => post({ type: "command", command: "deleteAccount" })}
+            >
+              <span className="codicon codicon-trash" aria-hidden="true" />
+              {strings.deleteAccount}
+            </button>
+          </div>
+        </Section>
+
+        <p className="meta version">{strings.version.replace("{0}", settings.version)}</p>
+      </div>
+    </div>
+  );
+}
+
+function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="settings-section">
+      <h2 className="subtitle">
+        <span className={`codicon codicon-${icon}`} aria-hidden="true" />
+        {title}
+      </h2>
+      <div className="team-card">{children}</div>
+    </section>
+  );
+}

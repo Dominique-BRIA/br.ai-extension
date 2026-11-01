@@ -1,13 +1,17 @@
 import { randomBytes } from "node:crypto";
 import type {
+  CatchUpResponse,
   CreateInvitationResponse,
   CurrentInvitationResponse,
   ListMessagesResponse,
+  Locale,
   MemoryType,
   Message,
   Project,
   RequestCodeResponse,
+  SessionsResponse,
   Team,
+  User,
   VerifyCodeResponse,
 } from "@br-ia/protocol";
 import * as vscode from "vscode";
@@ -18,13 +22,17 @@ import type { Checkpoints } from "./cook/checkpoints";
 import type { PermissionMode } from "./cook/executor";
 import type { OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
+import { LocalMemory } from "./localMemory";
 import type { MemoryStore } from "./memoryStore";
+import type { NotificationsStore } from "./notificationsStore";
 import type { Session } from "./session";
 import type {
+  CatchUp,
   ChatStrings,
   ChatViewState,
   FromWebview,
   HomeForm,
+  PanelSettings,
   TeamInvitation,
   ToWebview,
   WebviewCommand,
@@ -42,8 +50,15 @@ export interface ChatSources {
   orders: OrdersStore;
   folders: ProjectFolders;
   checkpoints: Checkpoints;
+  notifications: NotificationsStore;
+  localMemory: LocalMemory;
   machineId: string;
 }
+
+/** Visites de chaque projet sur cette machine, pour le résumé d'absence. */
+const VISITS_KEY = "bria.lastVisits";
+/** Absence à partir de laquelle on propose un résumé : « plusieurs heures ». */
+const ABSENCE_MS = 3 * 60 * 60_000;
 
 /**
  * Le panneau de <br>.ia, où tout se passe : la connexion, l'accueil avec les équipes et
@@ -68,6 +83,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #revertable: string[] = [];
   /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
   readonly #invitations = new Map<string, TeamInvitation | null>();
+  /** Résumé d'absence du projet ouvert. */
+  #catchUp: (CatchUp & { projectId: string }) | null = null;
+  #lastTouch = 0;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -81,8 +99,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       memory.onDidChange(() => this.#post()),
       orders.onDidChange(() => void this.#refreshRevertable()),
       folders.onDidChange(() => this.#post()),
+      sources.notifications.onDidChange(() => this.#post()),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("bria.permissionMode")) this.#post();
+        if (event.affectsConfiguration("bria")) this.#post();
       }),
       connection.onEvent((event) => {
         if (event.type === "message.created" && event.message.projectId === this.#projectId) {
@@ -119,11 +138,54 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#projectId = projectId;
     this.#messages = [];
     this.#hasMore = false;
+    this.#catchUp = null;
     await this.context.workspaceState.update(OPEN_PROJECT_KEY, projectId);
     this.#onDidOpenProject.fire(projectId);
     this.#post();
     if (reveal) await this.#reveal();
+    void this.#checkAbsence();
     if (projectId) await this.#loadLatest();
+  }
+
+  /**
+   * Le membre revient sur le projet ouvert : après plusieurs heures sans l'avoir regardé
+   * sur cette machine, l'agent serveur lui résume ce qui s'est passé.
+   */
+  async #checkAbsence(): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId || !this.#visible() || !this.#sources.session.token) return;
+    const visits = this.context.globalState.get<Record<string, string>>(VISITS_KEY) ?? {};
+    const previous = visits[projectId];
+    await this.#touch(true);
+    if (!previous || Date.now() - new Date(previous).getTime() < ABSENCE_MS) return;
+    if (this.#catchUp?.projectId === projectId) return;
+
+    this.#catchUp = { projectId, count: 0, summary: null, since: previous };
+    this.#post();
+    try {
+      const result = await this.#sources.api.post<CatchUpResponse>(`/projects/${projectId}/catch-up`, {
+        since: previous,
+      });
+      if (this.#catchUp?.projectId !== projectId) return;
+      this.#catchUp = result.summary ? { projectId, since: previous, ...result } : null;
+    } catch {
+      this.#catchUp = null;
+    }
+    this.#post();
+  }
+
+  /** Note que le projet ouvert est sous les yeux du membre (au plus une fois par minute). */
+  async #touch(force = false): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId || !this.#visible()) return;
+    if (!force && Date.now() - this.#lastTouch < 60_000) return;
+    this.#lastTouch = Date.now();
+    const visits = this.context.globalState.get<Record<string, string>>(VISITS_KEY) ?? {};
+    await this.context.globalState.update(VISITS_KEY, { ...visits, [projectId]: new Date().toISOString() });
+  }
+
+  #visible(): boolean {
+    return Boolean(this.#view?.visible) || Boolean(this.#panel?.visible);
   }
 
   /** Affiche le panneau : la connexion, l'accueil ou le projet ouvert. */
@@ -161,7 +223,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const subscriptions = [
       panel.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
       panel.onDidChangeViewState(() => {
-        if (panel.visible) this.#post();
+        if (!panel.visible) return;
+        void this.#checkAbsence();
+        this.#post();
       }),
     ];
     panel.onDidDispose(() => {
@@ -178,7 +242,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const subscriptions = [
       view.webview.onDidReceiveMessage((message: FromWebview) => this.#onMessage(message)),
       view.onDidChangeVisibility(() => {
-        if (view.visible) this.#post();
+        if (!view.visible) return;
+        void this.#checkAbsence();
+        this.#post();
       }),
     ];
     view.onDidDispose(() => {
@@ -201,8 +267,40 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   async #onMessage(message: FromWebview): Promise<void> {
     switch (message.type) {
       case "ready":
+        void this.#checkAbsence();
         this.#post();
         if (this.#projectId && this.#messages.length === 0) await this.#loadLatest();
+        return;
+      case "updateProfile":
+        await this.#updateProfile(message.displayName, message.locale);
+        return;
+      case "setSetting":
+        await vscode.workspace
+          .getConfiguration("bria")
+          .update(message.key, message.value, vscode.ConfigurationTarget.Global);
+        return;
+      case "setServerUrl":
+        await this.#setServerUrl(message.url);
+        return;
+      case "openLocalMemory":
+        await this.#sources.localMemory.open();
+        return;
+      case "loadMachines":
+        await this.#loadMachines();
+        return;
+      case "signOutMachine":
+        await this.#signOutMachine(message.sessionId);
+        return;
+      case "notificationsSeen":
+        await this.#sources.notifications.markSeen();
+        return;
+      case "openNotification":
+        await this.open(message.projectId);
+        if (message.messageId) await this.reveal(message.messageId);
+        return;
+      case "dismissCatchUp":
+        this.#catchUp = null;
+        this.#post();
         return;
       case "requestCode":
         await this.#requestCode(message.email, message.invitationCode);
@@ -345,27 +443,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         if (found) await vscode.commands.executeCommand("bria.linkFolder", { kind: "project", ...found });
         return;
       }
-      case "menu": {
-        const t = vscode.l10n.t;
-        const actions: { label: string; command: string }[] = [
-          {
-            label: `$(link-external) ${t("Open the chat in a large tab")}`,
-            command: "bria.openChatInEditor",
-          },
-          { label: `$(terminal) ${t("Show what the cook runs")}`, command: "bria.showCookTerminal" },
-          { label: `$(shield) ${t("Choose what the cook may do")}`, command: "bria.setPermissionMode" },
-          { label: `$(vm-connect) ${t("Lend / stop lending this machine")}`, command: "bria.toggleLending" },
-          {
-            label: `$(open-preview) ${t("Open the memory as a document")}`,
-            command: "bria.memory.openDocument",
-          },
-          { label: `$(person-add) ${t("Invite to the team")}`, command: "bria.invite" },
-          { label: `$(account) ${t("Edit my profile")}`, command: "bria.editProfile" },
-        ];
-        const picked = await vscode.window.showQuickPick(actions, { title: "<br>.ia" });
-        if (picked) await vscode.commands.executeCommand(picked.command);
-        return;
-      }
       case "leaveTeam":
         await vscode.commands.executeCommand("bria.leaveTeam", this.#teamNode());
         return;
@@ -378,6 +455,63 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "signOut":
         await vscode.commands.executeCommand("bria.signOut");
         return;
+      case "deleteAccount":
+        await vscode.commands.executeCommand("bria.deleteAccount");
+        return;
+    }
+  }
+
+  async #updateProfile(displayName: string | undefined, locale: Locale | undefined): Promise<void> {
+    const { api, session, store } = this.#sources;
+    const token = session.token;
+    if (!token) return;
+    try {
+      const { user } = await api.patch<{ user: User }>("/me", { displayName, locale });
+      await session.signedIn(token, user);
+      await store.refresh();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #setServerUrl(url: string): Promise<void> {
+    const trimmed = url.trim().replace(/\/+$/, "");
+    if (!/^https?:\/\/\S+$/.test(trimmed)) {
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t("The server address must start with http:// or https://."),
+      );
+      return;
+    }
+    await vscode.workspace
+      .getConfiguration("bria")
+      .update("serverUrl", trimmed, vscode.ConfigurationTarget.Global);
+  }
+
+  async #loadMachines(): Promise<void> {
+    try {
+      const { sessions } = await this.#sources.api.get<SessionsResponse>("/me/sessions");
+      this.#postRaw({ type: "machines", machines: sessions });
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  /** Déconnecte une machine du compte, après confirmation. */
+  async #signOutMachine(sessionId: string): Promise<void> {
+    const signOut = vscode.l10n.t("Sign out");
+    const answer = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Sign out this machine?"),
+      { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use <br>.ia.") },
+      signOut,
+    );
+    if (answer !== signOut) return;
+    try {
+      const { sessions } = await this.#sources.api.get<SessionsResponse>("/me/sessions");
+      await this.#sources.api.delete(`/me/sessions/${sessionId}`);
+      if (sessions.find((machine) => machine.id === sessionId)?.current) await this.#sources.session.clear();
+      else await this.#loadMachines();
+    } catch (error) {
+      this.#reportError(error);
     }
   }
 
@@ -609,6 +743,28 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       permissionMode: vscode.workspace
         .getConfiguration("bria")
         .get<PermissionMode>("permissionMode", "manual"),
+      catchUp:
+        this.#catchUp?.projectId === found.project.id
+          ? { count: this.#catchUp.count, summary: this.#catchUp.summary, since: this.#catchUp.since }
+          : null,
+    };
+  }
+
+  #settings(): PanelSettings | null {
+    const user = this.#sources.session.user;
+    if (!user || !this.#sources.session.token) return null;
+    const settings = vscode.workspace.getConfiguration("bria");
+    return {
+      displayName: user.displayName,
+      email: user.email,
+      locale: user.locale,
+      permissionMode: settings.get<PermissionMode>("permissionMode", "manual"),
+      lendMachine: settings.get<boolean>("lendMachine", false),
+      showCookTerminal: settings.get<boolean>("showCookTerminal", true),
+      notifyMentions: settings.get<boolean>("notifyMentions", true),
+      serverUrl: settings.get<string>("serverUrl", ""),
+      version: String(this.context.extension.packageJSON.version),
+      localMemoryFile: LocalMemory.file,
     };
   }
 
@@ -624,8 +780,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   #post(): void {
+    void this.#touch();
     const webviews = [this.#view?.webview, this.#panel?.webview].filter((webview) => webview !== undefined);
     const media = (file: string) => vscode.Uri.joinPath(this.context.extensionUri, "media", file);
+    const { notifications } = this.#sources;
     for (const webview of webviews) {
       const message: ToWebview = {
         type: "state",
@@ -635,6 +793,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         locale: vscode.env.language,
         logoUri: webview.asWebviewUri(media("logo.png")).toString(),
         wordmarkUri: webview.asWebviewUri(media("logo-complet.png")).toString(),
+        notifications: notifications.items,
+        unread: notifications.unread,
+        settings: this.#settings(),
       };
       void webview.postMessage(message);
     }
@@ -737,7 +898,6 @@ function chatStrings(): ChatStrings {
     beta: t("BETA"),
     online: t("{0}/{1} online"),
     refresh: t("Refresh"),
-    more: t("More actions"),
     tabChat: t("Chat"),
     tabMemory: t("Memory"),
     tabOrders: t("Orders"),
@@ -898,5 +1058,33 @@ function chatStrings(): ChatStrings {
     leaveTeam: t("Leave the team"),
     removeMember: t("Remove from the team"),
     makeChef: t("Make team lead"),
+    notificationsTitle: t("Notifications"),
+    noNotifications: t("Nothing new. Mentions, answers from <br>.ia and finished orders appear here."),
+    notifMention: t("{0} mentioned you"),
+    notifReply: t("<br>.ia answered you"),
+    newBadge: t("NEW"),
+    settingsTitle: t("Settings"),
+    profileSection: t("Profile"),
+    emailLanguage: t("Language of the emails"),
+    save: t("Save"),
+    saved: t("Saved"),
+    machineSection: t("This machine"),
+    lendMachineDetail: t("The cook may work here on your teammates' orders."),
+    showTerminalLabel: t("Show the cook terminal when it starts working"),
+    notifyLabel: t("Notify me when I am mentioned"),
+    localMemorySection: t("My local memory"),
+    localMemoryDetail: t(
+      "Work preferences noted in the chat, kept on this machine and backed up on the server. The cook follows them.",
+    ),
+    machinesSection: t("Signed-in machines"),
+    thisMachine: t("this machine"),
+    serverSection: t("Server"),
+    serverUrlLabel: t("Server address"),
+    deleteAccount: t("Delete my account"),
+    version: t("Version {0}"),
+    catchUpTitle: t("While you were away"),
+    catchUpCount: t("{0} new message(s)"),
+    catchUpLoading: t("<br>.ia is summarizing what happened…"),
+    close: t("Close"),
   };
 }

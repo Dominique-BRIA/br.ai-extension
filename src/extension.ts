@@ -14,9 +14,11 @@ import { OrdersStore, OrdersTreeProvider } from "./cook/orders";
 import { ProjectFolders } from "./cook/projectFolders";
 import { ProposalReview } from "./cook/proposals";
 import { CookTerminal } from "./cook/terminal";
+import { LocalMemory } from "./localMemory";
 import { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
 import { watchMentions } from "./notifications";
+import { NotificationsStore } from "./notificationsStore";
 import { serverWsUrl } from "./server";
 import { Session } from "./session";
 import { createStatusBar } from "./statusBar";
@@ -42,6 +44,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const proposals = new ProposalReview();
   const checkpoints = new Checkpoints(vscode.Uri.joinPath(context.globalStorageUri, "checkpoints").fsPath);
   const orders = new OrdersStore(api, connection, log);
+  const notifications = new NotificationsStore(context, api, connection, session, log);
+  const localMemory = new LocalMemory(api, connection, session, log);
   const chat = new ChatViewProvider(context, {
     api,
     session,
@@ -51,6 +55,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     orders,
     folders,
     checkpoints,
+    notifications,
+    localMemory,
     machineId: machine.id,
   });
   const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId, folders);
@@ -76,6 +82,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     session,
     connection,
     store,
+    notifications,
+    localMemory,
     chat,
     teams,
     connection.onDidChangeState(updateContext),

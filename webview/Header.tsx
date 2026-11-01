@@ -3,6 +3,9 @@ import { post } from "./vscodeApi";
 
 export type Tab = "chat" | "memory" | "orders" | "team";
 
+/** Écran affiché par-dessus l'accueil ou le projet. */
+export type Screen = "main" | "notifications" | "settings";
+
 interface HeaderProps {
   logoUri: string;
   section: string;
@@ -10,6 +13,8 @@ interface HeaderProps {
   onlineCount: number;
   memberCount: number;
   connected: boolean;
+  unread: number;
+  onScreen(screen: Screen): void;
   strings: ChatStrings;
 }
 
@@ -56,26 +61,51 @@ export function Header(props: HeaderProps) {
         >
           <span className="codicon codicon-home" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          className="icon-button"
-          title={strings.refresh}
-          aria-label={strings.refresh}
-          onClick={() => post({ type: "refresh" })}
-        >
-          <span className="codicon codicon-refresh" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          title={strings.more}
-          aria-label={strings.more}
-          onClick={() => post({ type: "command", command: "menu" })}
-        >
-          <span className="codicon codicon-kebab-vertical" aria-hidden="true" />
-        </button>
+        <AccountActions unread={props.unread} onScreen={props.onScreen} strings={strings} />
       </div>
     </header>
+  );
+}
+
+interface AccountActionsProps {
+  unread: number;
+  onScreen(screen: Screen): void;
+  strings: ChatStrings;
+}
+
+/** Actualiser, les notifications (avec le nombre de non-lues) et les réglages. */
+export function AccountActions({ unread, onScreen, strings }: AccountActionsProps) {
+  return (
+    <>
+      <button
+        type="button"
+        className="icon-button"
+        title={strings.refresh}
+        aria-label={strings.refresh}
+        onClick={() => post({ type: "refresh" })}
+      >
+        <span className="codicon codicon-refresh" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="icon-button bell"
+        title={strings.notificationsTitle}
+        aria-label={unread > 0 ? `${strings.notificationsTitle} (${unread})` : strings.notificationsTitle}
+        onClick={() => onScreen("notifications")}
+      >
+        <span className={`codicon codicon-${unread > 0 ? "bell-dot" : "bell"}`} aria-hidden="true" />
+        {unread > 0 && <span className="nav-count">{unread > 9 ? "9+" : unread}</span>}
+      </button>
+      <button
+        type="button"
+        className="icon-button"
+        title={strings.settingsTitle}
+        aria-label={strings.settingsTitle}
+        onClick={() => onScreen("settings")}
+      >
+        <span className="codicon codicon-settings-gear" aria-hidden="true" />
+      </button>
+    </>
   );
 }
 

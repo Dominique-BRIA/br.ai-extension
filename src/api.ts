@@ -20,7 +20,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PATCH" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 /** Client de l'API HTTP du serveur <br>.ia. */
 export class Api {
@@ -91,6 +91,9 @@ export class Api {
   }
   post<T>(path: string, body?: unknown) {
     return this.request<T>("POST", path, body ?? {});
+  }
+  put<T>(path: string, body: unknown) {
+    return this.request<T>("PUT", path, body);
   }
   patch<T>(path: string, body: unknown) {
     return this.request<T>("PATCH", path, body);
