@@ -5,6 +5,7 @@ import { cookTools, isCookTool } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import type { Connection } from "../connection";
 import type { Checkpoints } from "./checkpoints";
+import { ensureGitignored, envValues, maskSecrets, mergeEnv, type SecretValue } from "./envFile";
 import type { ProjectFolders } from "./projectFolders";
 import type { ProposalReview } from "./proposals";
 import { dangerousCommand, IGNORED_DIRECTORIES, resolveInProject } from "./safety";
@@ -33,6 +34,8 @@ export class CookExecutor implements vscode.Disposable {
   readonly onDidChangeBusy = this.#onDidChangeBusy.event;
   readonly #subscription: vscode.Disposable;
   #busyOrder: string | undefined;
+  /** Valeurs récupérées du coffre pour chaque projet, à masquer dans les sorties. */
+  readonly #secretValues = new Map<string, string[]>();
   #idle: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
@@ -43,6 +46,8 @@ export class CookExecutor implements vscode.Disposable {
     private readonly terminal: CookTerminal,
     private readonly log: vscode.LogOutputChannel,
     private readonly describeOrder: (orderId: string) => string,
+    /** Les secrets du coffre ouverts au propriétaire de la machine, pour un projet. */
+    private readonly fetchSecrets: (projectId: string) => Promise<SecretValue[]>,
   ) {
     this.#subscription = connection.onEvent(async (event) => {
       if (event.type !== "tool.call") return;
@@ -53,6 +58,8 @@ export class CookExecutor implements vscode.Disposable {
       } catch (error) {
         outcome = { ok: false, output: `Erreur : ${(error as Error).message}` };
       }
+      // L'IA ne voit jamais une valeur secrète : ni du coffre, ni du .env de la machine.
+      outcome = { ...outcome, output: await this.#mask(event.projectId, outcome.output) };
       this.log.info(`Cuisinier : ${event.tool} → ${outcome.ok ? "fait" : "refusé ou en échec"}`);
       if (event.tool !== "run_command") this.terminal.step(describe(event.tool, event.input, outcome));
       connection.send({
@@ -119,6 +126,8 @@ export class CookExecutor implements vscode.Disposable {
         return this.#command(root, mode, String(input.command), Number(input.timeout_seconds));
       case "check_environment":
         return this.#environment();
+      case "write_env":
+        return this.#writeEnv(orderId, projectId, root, mode, String(input.path));
     }
   }
 
@@ -277,6 +286,56 @@ export class CookExecutor implements vscode.Disposable {
     return outcome;
   }
 
+  /**
+   * Écrit le .env du projet avec les secrets du coffre ouverts au propriétaire de la machine,
+   * et l'ajoute au .gitignore. L'IA ne reçoit que les noms.
+   */
+  async #writeEnv(
+    orderId: string,
+    projectId: string,
+    root: string,
+    mode: PermissionMode,
+    path: string,
+  ): Promise<Outcome> {
+    if (mode === "plan") return refused("Mode Plan : aucun fichier n'est écrit.");
+    const target = resolveInProject(root, path);
+    if (!target.inside) return refused("Le .env doit rester dans le dossier du projet.");
+    const secrets = await this.fetchSecrets(projectId);
+    if (secrets.length === 0) {
+      return refused("Aucun secret du coffre n'est ouvert au propriétaire de cette machine pour ce projet.");
+    }
+    const names = secrets.map((secret) => secret.name).join(", ");
+    if (mode !== "auto") {
+      const write = vscode.l10n.t("Write");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("The cook wants to write {0} with these secrets from the vault: {1}", path, names),
+        { modal: true, detail: vscode.l10n.t("The values stay on this machine: the AI never sees them.") },
+        write,
+      );
+      if (answer !== write) return refused("Écriture du .env refusée par le membre.");
+    }
+    this.#secretValues.set(
+      projectId,
+      secrets.map((secret) => secret.value),
+    );
+    const before = await readFile(target.absolute, "utf8").catch(() => null);
+    await this.checkpoints.remember(orderId, target.absolute, before);
+    await mkdir(dirname(target.absolute), { recursive: true });
+    await writeFile(target.absolute, mergeEnv(before ?? "", secrets));
+    const ignored = await ensureGitignored(root, relative(root, target.absolute));
+    return {
+      ok: true,
+      output: `Fichier ${path} écrit avec : ${names}.${ignored ? " Ajouté au .gitignore." : " Déjà dans le .gitignore."}`,
+    };
+  }
+
+  /** Masque les valeurs du coffre et celles du .env du projet. */
+  async #mask(projectId: string, text: string): Promise<string> {
+    const root = this.folders.get(projectId);
+    const local = root ? await readFile(join(root, ".env"), "utf8").catch(() => "") : "";
+    return maskSecrets(text, [...(this.#secretValues.get(projectId) ?? []), ...envValues(local)]);
+  }
+
   async #environment(): Promise<Outcome> {
     const version = (command: string) =>
       new Promise<string>((resolve) =>
@@ -319,6 +378,10 @@ function describe(tool: string, input: Record<string, unknown>, outcome: Outcome
     case "edit_file":
       return outcome.ok
         ? `${vscode.l10n.t("Changed")} ${path}`
+        : `${vscode.l10n.t("Not changed")} ${path}${failed}`;
+    case "write_env":
+      return outcome.ok
+        ? `${vscode.l10n.t("Wrote {0} from the vault", path)}`
         : `${vscode.l10n.t("Not changed")} ${path}${failed}`;
     default:
       return `${tool}${failed}`;

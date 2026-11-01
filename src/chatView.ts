@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type {
   CatchUpResponse,
   CreateInvitationResponse,
@@ -9,6 +11,9 @@ import type {
   Message,
   Project,
   RequestCodeResponse,
+  SecretLogResponse,
+  SecretsResponse,
+  SecretValuesResponse,
   SessionsResponse,
   Team,
   User,
@@ -19,6 +24,7 @@ import { type Api, ApiRequestError } from "./api";
 import { openAttachment, pickAndUpload } from "./attachments";
 import type { Connection } from "./connection";
 import type { Checkpoints } from "./cook/checkpoints";
+import { ensureGitignored, mergeEnv } from "./cook/envFile";
 import type { PermissionMode } from "./cook/executor";
 import type { OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
@@ -83,6 +89,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #revertable: string[] = [];
   /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
   readonly #invitations = new Map<string, TeamInvitation | null>();
+  /** Coffre de secrets de chaque projet, une fois chargé. */
+  readonly #vaults = new Map<string, SecretsResponse>();
   /** Résumé d'absence du projet ouvert. */
   #catchUp: (CatchUp & { projectId: string }) | null = null;
   #lastTouch = 0;
@@ -119,6 +127,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         if (!user) {
           this.#messages = [];
           this.#invitations.clear();
+          this.#vaults.clear();
         }
         this.#post();
       }),
@@ -297,6 +306,31 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "openNotification":
         await this.open(message.projectId);
         if (message.messageId) await this.reveal(message.messageId);
+        return;
+      case "vault":
+        if (message.action === "load") await this.#loadVault();
+        else if (message.action === "log") await this.#loadSecretLog();
+        else await this.#writeEnv();
+        return;
+      case "createSecret": {
+        const projectId = this.#projectId;
+        if (!projectId) return;
+        await this.#vaultForm("createSecret", () =>
+          this.#sources.api.post(`/projects/${projectId}/secrets`, {
+            name: message.name,
+            value: message.value,
+            access: message.access,
+          }),
+        );
+        return;
+      }
+      case "updateSecret":
+        await this.#vaultForm("updateSecret", () =>
+          this.#sources.api.patch(`/secrets/${message.id}`, { value: message.value, access: message.access }),
+        );
+        return;
+      case "deleteSecret":
+        await this.#deleteSecret(message.id);
         return;
       case "dismissCatchUp":
         this.#catchUp = null;
@@ -510,6 +544,87 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       await this.#sources.api.delete(`/me/sessions/${sessionId}`);
       if (sessions.find((machine) => machine.id === sessionId)?.current) await this.#sources.session.clear();
       else await this.#loadMachines();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #loadVault(): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId) return;
+    try {
+      this.#vaults.set(
+        projectId,
+        await this.#sources.api.get<SecretsResponse>(`/projects/${projectId}/secrets`),
+      );
+      this.#post();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #loadSecretLog(): Promise<void> {
+    const projectId = this.#projectId;
+    if (!projectId) return;
+    try {
+      const { entries } = await this.#sources.api.get<SecretLogResponse>(
+        `/projects/${projectId}/secrets/log`,
+      );
+      this.#postRaw({ type: "secretLog", entries });
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  /** Formulaire du coffre : appel au serveur, puis coffre rechargé. */
+  async #vaultForm(form: HomeForm, run: () => Promise<unknown>): Promise<void> {
+    try {
+      await run();
+      await this.#loadVault();
+      this.#postRaw({ type: "formResult", form, ok: true });
+    } catch (error) {
+      this.#postRaw({ type: "formResult", form, ok: false, error: (error as Error).message });
+    }
+  }
+
+  async #deleteSecret(secretId: string): Promise<void> {
+    const name = this.#vaults
+      .get(this.#projectId ?? "")
+      ?.secrets.find((secret) => secret.id === secretId)?.name;
+    const remove = vscode.l10n.t("Delete");
+    const answer = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Delete the secret {0}?", name ?? ""),
+      { modal: true, detail: vscode.l10n.t("Copies already written in .env files on the machines remain.") },
+      remove,
+    );
+    if (answer !== remove) return;
+    try {
+      await this.#sources.api.delete(`/secrets/${secretId}`);
+      await this.#loadVault();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  /** Écrit le .env du projet sur cette machine avec les secrets ouverts au membre. */
+  async #writeEnv(): Promise<void> {
+    const projectId = this.#projectId;
+    const root = projectId ? this.#sources.folders.get(projectId) : undefined;
+    if (!projectId || !root) return;
+    try {
+      const { values } = await this.#sources.api.post<SecretValuesResponse>(
+        `/projects/${projectId}/secrets/values`,
+      );
+      if (values.length === 0) return;
+      const file = join(root, ".env");
+      const before = await readFile(file, "utf8").catch(() => "");
+      await writeFile(file, mergeEnv(before, values));
+      const ignored = await ensureGitignored(root, ".env");
+      void vscode.window.showInformationMessage(
+        ignored
+          ? vscode.l10n.t("{0} written with {1} secret(s), and added to .gitignore.", file, values.length)
+          : vscode.l10n.t("{0} written with {1} secret(s).", file, values.length),
+      );
     } catch (error) {
       this.#reportError(error);
     }
@@ -743,6 +858,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       permissionMode: vscode.workspace
         .getConfiguration("bria")
         .get<PermissionMode>("permissionMode", "manual"),
+      vault: this.#vaults.get(found.project.id),
       catchUp:
         this.#catchUp?.projectId === found.project.id
           ? { count: this.#catchUp.count, summary: this.#catchUp.summary, since: this.#catchUp.since }
@@ -1086,5 +1202,24 @@ function chatStrings(): ChatStrings {
     catchUpCount: t("{0} new message(s)"),
     catchUpLoading: t("<br>.ia is summarizing what happened…"),
     close: t("Close"),
+    vaultTitle: t("Secrets vault"),
+    vaultDisabled: t("The secrets vault is not enabled on this server."),
+    vaultEmpty: t(
+      "No secret yet. Store the project's keys and passwords here: the AI only ever sees their names.",
+    ),
+    vaultNoneForYou: t("No secret is open to you in this project."),
+    accessLabel: t("Access: {0}"),
+    chefOnly: t("team lead only"),
+    addSecret: t("Add a secret"),
+    secretName: t("Name"),
+    secretValue: t("Value"),
+    newValuePlaceholder: t("New value (leave empty to keep it)"),
+    whoHasAccess: t("Who may retrieve it"),
+    writeEnv: t("Write the .env on this machine"),
+    envNeedsFolder: t("Link a folder to this project to write its .env."),
+    vaultLog: t("Vault log"),
+    logActions: { created: t("added"), updated: t("changed"), deleted: t("deleted"), read: t("retrieved") },
+    edit: t("Edit"),
+    remove: t("Delete"),
   };
 }

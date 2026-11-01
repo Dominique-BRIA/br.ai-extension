@@ -2187,6 +2187,47 @@ button.link:hover {
   text-align: center;
 }
 
+/* Coffre de secrets */
+
+.access-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.access-list legend {
+  margin-bottom: 4px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.check-row input {
+  accent-color: var(--bria-accent-strong);
+}
+
+.inline-form.team-card {
+  margin-bottom: 8px;
+}
+
+.env-button {
+  margin-top: 8px;
+}
+
+.vault-log {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: 0.9em;
+}
+
 /* Résumé d'absence */
 
 .catch-up {

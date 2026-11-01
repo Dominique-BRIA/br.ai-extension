@@ -9,6 +9,8 @@ import type {
   Notification,
   Order,
   OrderStatus,
+  SecretLogResponse,
+  SecretsResponse,
 } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 import type { PermissionMode } from "./cook/executor";
@@ -237,6 +239,25 @@ export interface ChatStrings {
   catchUpCount: string;
   catchUpLoading: string;
   close: string;
+  /** Coffre de secrets */
+  vaultTitle: string;
+  vaultDisabled: string;
+  vaultEmpty: string;
+  vaultNoneForYou: string;
+  /** « Accès : {0} » */
+  accessLabel: string;
+  chefOnly: string;
+  addSecret: string;
+  secretName: string;
+  secretValue: string;
+  newValuePlaceholder: string;
+  whoHasAccess: string;
+  writeEnv: string;
+  envNeedsFolder: string;
+  vaultLog: string;
+  logActions: Record<"created" | "updated" | "deleted" | "read", string>;
+  edit: string;
+  remove: string;
 }
 
 export interface HomeTeam {
@@ -254,7 +275,7 @@ export interface TeamInvitation {
 }
 
 /** Formulaires de l'accueil, dont la webview attend le résultat. */
-export type HomeForm = "createTeam" | "joinTeam" | "createProject";
+export type HomeForm = "createTeam" | "joinTeam" | "createProject" | "createSecret" | "updateSecret";
 
 export interface ChatMember {
   userId: string;
@@ -299,6 +320,8 @@ export type ChatViewState =
       permissionMode: PermissionMode;
       /** Résumé « pendant votre absence », affiché en haut du chat jusqu'à ce qu'on le ferme. */
       catchUp: CatchUp | null;
+      /** Coffre de secrets du projet ; `undefined` tant qu'il n'est pas chargé. */
+      vault?: SecretsResponse;
     };
 
 export interface CatchUp {
@@ -339,6 +362,8 @@ export type ToWebview =
       /** Absent hors connexion. */
       settings: PanelSettings | null;
     }
+  /** Le journal du coffre du projet ouvert (chef). */
+  | { type: "secretLog"; entries: SecretLogResponse["entries"] }
   /** Les machines connectées au compte, pour les réglages. */
   | { type: "machines"; machines: MachineSession[] }
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
@@ -395,6 +420,10 @@ export type FromWebview =
   | { type: "notificationsSeen" }
   | { type: "openNotification"; projectId: string; messageId: string | null }
   | { type: "dismissCatchUp" }
+  | { type: "vault"; action: "load" | "log" | "writeEnv" }
+  | { type: "createSecret"; name: string; value: string; access: string[] }
+  | { type: "updateSecret"; id: string; value?: string; access?: string[] }
+  | { type: "deleteSecret"; id: string }
   | { type: "setPermissionMode"; mode: PermissionMode }
   | { type: "connect" }
   | { type: "showLog" }

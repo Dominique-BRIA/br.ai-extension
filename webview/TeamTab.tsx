@@ -1,8 +1,9 @@
-import type { Order } from "@br-ia/protocol";
+import type { Order, SecretsResponse } from "@br-ia/protocol";
 import { useEffect, useState } from "react";
 import type { ChatMember, ChatStrings, TeamInvitation } from "../src/webviewMessages";
 import { formatRelative, initials } from "./format";
 import { activeOrder, orderCode } from "./Orders";
+import { VaultSection } from "./Vault";
 import { post } from "./vscodeApi";
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   isChef: boolean;
   /** Clé d'invitation en cours (chef) ; `undefined` tant qu'elle n'est pas chargée. */
   invitation: TeamInvitation | null | undefined;
+  /** Coffre de secrets ; `undefined` tant qu'il n'est pas chargé. */
+  vault: SecretsResponse | undefined;
   connected: boolean;
   orders: Order[];
   folderLinked: boolean;
@@ -114,6 +117,15 @@ export function TeamTab(props: Props) {
           </article>
         );
       })}
+
+      <VaultSection
+        vault={props.vault}
+        members={props.members}
+        isChef={props.isChef}
+        folderLinked={props.folderLinked}
+        strings={strings}
+        locale={locale}
+      />
 
       <div className="section-head small">
         <h3 className="subtitle">

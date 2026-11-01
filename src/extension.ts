@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { MachineInfo } from "@br-ia/protocol";
+import type { MachineInfo, SecretValuesResponse } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { Api } from "./api";
 import { ChatViewProvider } from "./chatView";
@@ -61,8 +61,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId, folders);
   const cookTerminal = new CookTerminal();
-  const executor = new CookExecutor(connection, folders, proposals, checkpoints, cookTerminal, log, (id) =>
-    orders.describe(id),
+  const executor = new CookExecutor(
+    connection,
+    folders,
+    proposals,
+    checkpoints,
+    cookTerminal,
+    log,
+    (id) => orders.describe(id),
+    async (projectId) =>
+      (await api.post<SecretValuesResponse>(`/projects/${projectId}/secrets/values`)).values,
   );
   const memoryTree = new MemoryTreeProvider(memory, store);
   const memoryDocument = new MemoryDocumentProvider(memory, store);
