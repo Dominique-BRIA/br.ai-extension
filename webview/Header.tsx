@@ -4,7 +4,7 @@ import { post } from "./vscodeApi";
 export type Tab = "chat" | "memory" | "orders" | "team";
 
 /** Écran affiché par-dessus l'accueil ou le projet. */
-export type Screen = "main" | "notifications" | "settings";
+export type Screen = "main" | "notifications" | "settings" | "vault";
 
 interface HeaderProps {
   logoUri: string;
@@ -60,6 +60,15 @@ export function Header(props: HeaderProps) {
           onClick={() => post({ type: "openProject", projectId: null })}
         >
           <span className="codicon codicon-home" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="icon-button"
+          title={strings.vaultTitle}
+          aria-label={strings.vaultTitle}
+          onClick={() => props.onScreen("vault")}
+        >
+          <span className="codicon codicon-lock" aria-hidden="true" />
         </button>
         <AccountActions unread={props.unread} onScreen={props.onScreen} strings={strings} />
       </div>

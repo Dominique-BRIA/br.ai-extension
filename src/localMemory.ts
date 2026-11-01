@@ -8,7 +8,7 @@ import type { Connection } from "./connection";
 import type { Session } from "./session";
 
 const HEADER =
-  "# Ma mémoire <br>.ia\n\nPréférences de travail que le cuisinier respecte sur cette machine. Vous pouvez modifier ce fichier.\n\n";
+  "# Ma mémoire \\<br\\>.ia\n\nPréférences de travail que le cuisinier respecte sur cette machine. Vous pouvez modifier ce fichier.\n\n";
 
 /**
  * La mémoire locale de la machine, `~/.bria/memoire.md` : les préférences de travail que le

@@ -35,7 +35,7 @@
   "<br>.ia · cook": "<br>.ia · cuisinier",
   "<br>.ia answered you in {0}.": "<br>.ia vous a répondu dans {0}.",
   "Cancel reply": "Annuler la réponse",
-  "Change": "Changer",
+  "Change": "Modifier",
   "Changed": "Modifié",
   "Changes and commands run directly, except risky commands.": "Modifications et commandes s'exécutent directement, sauf les commandes à risque.",
   "Changes are applied directly; you approve each command.": "Les modifications s'appliquent directement ; vous validez chaque commande.",
@@ -336,5 +336,11 @@
   "Write": "Écrire",
   "The cook wants to write {0} with these secrets from the vault: {1}": "Le cuisinier veut écrire {0} avec ces secrets du coffre : {1}",
   "The values stay on this machine: the AI never sees them.": "Les valeurs restent sur cette machine : l'IA ne les voit jamais.",
-  "Wrote {0} from the vault": "{0} écrit depuis le coffre"
+  "Wrote {0} from the vault": "{0} écrit depuis le coffre",
+  "New email address": "Nouvelle adresse e-mail",
+  "Send a code": "Envoyer un code",
+  "Enter the code sent to {0}.": "Saisissez le code envoyé à {0}.",
+  "Confirm": "Confirmer",
+  "Your address has been changed.": "Votre adresse a été modifiée.",
+  "This address is already used by another account.": "Cette adresse est déjà utilisée par un autre compte."
 }

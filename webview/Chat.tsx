@@ -75,7 +75,16 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
   const [tab, setTab] = useState<Tab>("chat");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const list = useRef<HTMLDivElement>(null);
-  const previous = useRef({ first: "", last: "", height: 0, nearBottom: true });
+  /** Le contenu du fil, dont la hauteur change quand un message s'affiche ou finit de se dessiner. */
+  const content = useRef<HTMLDivElement>(null);
+  const previous = useRef({
+    first: "",
+    last: "",
+    height: 0,
+    nearBottom: true,
+    element: null as HTMLDivElement | null,
+    projectId: "",
+  });
   const current = activeOrder(state.orders);
   const sections: Record<Tab, string> = {
     chat: strings.tabChat,
@@ -84,8 +93,9 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
     team: strings.tabTeam,
   };
 
-  // Défilement : en bas à l'ouverture et à l'arrivée d'un message si on y était déjà ;
-  // position conservée quand des messages plus anciens s'ajoutent en haut.
+  // Défilement : en bas à l'ouverture du fil (nouveau projet, retour sur l'onglet Chat) et à
+  // l'arrivée d'un message si on y était déjà ; position conservée quand des messages plus
+  // anciens s'ajoutent en haut.
   // biome-ignore lint/correctness/useExhaustiveDependencies: on refait le calcul en revenant sur l'onglet Chat.
   useLayoutEffect(() => {
     const element = list.current;
@@ -93,13 +103,68 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
     const first = state.messages[0]?.id ?? "";
     const last = state.messages.at(-1)?.id ?? "";
     const before = previous.current;
-    if (first !== before.first && last === before.last && before.height > 0) {
+    const opened = element !== before.element || state.projectId !== before.projectId;
+    let nearBottom = before.nearBottom;
+    if (opened) {
+      element.scrollTop = element.scrollHeight;
+      nearBottom = true;
+    } else if (first !== before.first && last === before.last && before.height > 0) {
       element.scrollTop += element.scrollHeight - before.height;
     } else if (last !== before.last && (before.nearBottom || !before.last)) {
       element.scrollTop = element.scrollHeight;
     }
-    previous.current = { first, last, height: element.scrollHeight, nearBottom: before.nearBottom };
-  }, [state.messages, tab]);
+    previous.current = {
+      first,
+      last,
+      height: element.scrollHeight,
+      nearBottom,
+      element,
+      projectId: state.projectId,
+    };
+  }, [state.messages, state.projectId, tab]);
+
+  // Le fil grandit encore après l'affichage (code coloré, diagrammes, carte d'absence) :
+  // tant qu'on est en bas, on y reste.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: l'observateur suit le contenu de l'onglet Chat.
+  useEffect(() => {
+    const element = list.current;
+    const inner = content.current;
+    if (!element || !inner) return;
+    const observer = new ResizeObserver(() => {
+      if (pendingReveal.current) return;
+      if (previous.current.nearBottom) element.scrollTop = element.scrollHeight;
+      previous.current.height = element.scrollHeight;
+    });
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [tab]);
+
+  /** Message à atteindre quand des messages plus anciens auront été chargés. */
+  const pendingReveal = useRef<string | null>(null);
+
+  /** Remonte au message cité, en chargeant les plus anciens s'il n'est pas encore affiché. */
+  const goToMessage = (messageId: string) => {
+    if (state.messages.some((message) => message.id === messageId)) {
+      showMessage(messageId);
+    } else if (state.hasMore) {
+      pendingReveal.current = messageId;
+      post({ type: "loadOlder" });
+    }
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on réessaie à chaque page de messages chargée.
+  useEffect(() => {
+    const target = pendingReveal.current;
+    if (!target || state.loadingOlder) return;
+    if (state.messages.some((message) => message.id === target)) {
+      pendingReveal.current = null;
+      showMessage(target);
+    } else if (state.hasMore) {
+      post({ type: "loadOlder" });
+    } else {
+      pendingReveal.current = null;
+    }
+  }, [state.messages, state.loadingOlder]);
 
   const showMessage = (messageId: string) => {
     setTab("chat");
@@ -172,107 +237,116 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
       {tab === "chat" && (
         <>
           <div className="messages" ref={list} onScroll={onScroll}>
-            {state.catchUp && <CatchUpCard catchUp={state.catchUp} strings={strings} />}
-            {current && <OrderPill order={current} strings={strings} onOpen={() => setTab("orders")} />}
+            <div ref={content}>
+              {state.catchUp && <CatchUpCard catchUp={state.catchUp} strings={strings} />}
+              {current && <OrderPill order={current} strings={strings} onOpen={() => setTab("orders")} />}
 
-            {state.hasMore && (
-              <button
-                type="button"
-                className="link load-older"
-                disabled={state.loadingOlder}
-                onClick={() => post({ type: "loadOlder" })}
-              >
-                {state.loadingOlder ? strings.loading : strings.loadOlder}
-              </button>
-            )}
+              {state.hasMore && (
+                <button
+                  type="button"
+                  className="link load-older"
+                  disabled={state.loadingOlder}
+                  onClick={() => post({ type: "loadOlder" })}
+                >
+                  {state.loadingOlder ? strings.loading : strings.loadOlder}
+                </button>
+              )}
 
-            {state.messages.length === 0 && (
-              <section className="empty">
-                <h2>{strings.emptyChatTitle}</h2>
-                <p>{strings.emptyChatBody}</p>
-              </section>
-            )}
+              {state.messages.length === 0 && (
+                <section className="empty">
+                  <h2>{strings.emptyChatTitle}</h2>
+                  <p>{strings.emptyChatBody}</p>
+                </section>
+              )}
 
-            {state.messages.map((message, index) => {
-              const before = state.messages[index - 1];
-              const newDay = !before || !sameDay(before.createdAt, message.createdAt);
-              const grouped = !newDay && continuesPrevious(before, message);
-              const mine = message.author.kind === "member" && message.author.userId === state.myUserId;
-              const agent = message.author.kind === "serveur" || message.author.kind === "cuisinier";
-              const mentionsMe = message.mentions.includes(state.myUserId);
-              const classes = [
-                "message",
-                mine ? "mine" : "theirs",
-                agent && "agent",
-                grouped && "grouped",
-                mentionsMe && "mentions-me",
-              ];
-              return (
-                <Fragment key={message.id}>
-                  {newDay && (
-                    <h2 className="day">
-                      <span>
-                        {formatDay(message.createdAt, locale, strings)} · {state.teamName}
-                      </span>
-                    </h2>
-                  )}
-                  <article
-                    id={`message-${message.id}`}
-                    className={classes.filter(Boolean).join(" ")}
-                    aria-label={mentionsMe ? strings.mentionsYou : undefined}
-                  >
-                    {!grouped && (
-                      <div className="message-head">
-                        {mine ? (
-                          <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
-                        ) : (
-                          <span className={agent ? "initials agent" : "initials"}>
-                            {authorInitials(message.author, strings)}
-                          </span>
-                        )}
-                        <span className="author">{authorName(message.author, strings, state.myUserId)}</span>
-                        {agent && <span className="agent-label">{"<br>.ia"}</span>}
-                        {!mine && (
-                          <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
-                        )}
-                      </div>
+              {state.messages.map((message, index) => {
+                const before = state.messages[index - 1];
+                const newDay = !before || !sameDay(before.createdAt, message.createdAt);
+                const grouped = !newDay && continuesPrevious(before, message);
+                const mine = message.author.kind === "member" && message.author.userId === state.myUserId;
+                const agent = message.author.kind === "serveur" || message.author.kind === "cuisinier";
+                const mentionsMe = message.mentions.includes(state.myUserId);
+                const classes = [
+                  "message",
+                  mine ? "mine" : "theirs",
+                  agent && "agent",
+                  grouped && "grouped",
+                  mentionsMe && "mentions-me",
+                ];
+                return (
+                  <Fragment key={message.id}>
+                    {newDay && (
+                      <h2 className="day">
+                        <span>
+                          {formatDay(message.createdAt, locale, strings)} · {state.teamName}
+                        </span>
+                      </h2>
                     )}
-                    <div className="bubble">
-                      {message.replyTo && (
-                        <div className="quoted">
-                          <div className="quoted-author">
-                            <span className="codicon codicon-reply" aria-hidden="true" />
-                            {authorName(message.replyTo.author, strings, state.myUserId)}
-                          </div>
-                          <div className="quoted-text">{message.replyTo.excerpt}</div>
+                    <article
+                      id={`message-${message.id}`}
+                      className={classes.filter(Boolean).join(" ")}
+                      aria-label={mentionsMe ? strings.mentionsYou : undefined}
+                    >
+                      {!grouped && (
+                        <div className="message-head">
+                          {mine ? (
+                            <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
+                          ) : (
+                            <span className={agent ? "initials agent" : "initials"}>
+                              {authorInitials(message.author, strings)}
+                            </span>
+                          )}
+                          <span className="author">
+                            {authorName(message.author, strings, state.myUserId)}
+                          </span>
+                          {agent && <span className="agent-label">{"<br>.ia"}</span>}
+                          {!mine && (
+                            <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
+                          )}
                         </div>
                       )}
-                      {message.body && <Markdown text={message.body} diagramError={strings.diagramError} />}
-                      <Attachments attachments={message.attachments} strings={strings} locale={locale} />
-                    </div>
-                    <div className="message-actions">
-                      <button
-                        type="button"
-                        className="icon-button"
-                        title={strings.reply}
-                        aria-label={strings.reply}
-                        onClick={() => setReplyTo(message)}
-                      >
-                        <span className="codicon codicon-reply" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </article>
-                  {(state.notes[message.id] ?? []).map((type) => (
-                    <div key={type} className="note-pill">
-                      <span>
-                        <span className={`codicon codicon-${NOTE_ICONS[type]}`} aria-hidden="true" />
-                        {strings.noted[type]}
-                      </span>
-                    </div>
-                  ))}
-                </Fragment>
-              );
-            })}
+                      <div className="bubble">
+                        {message.replyTo && (
+                          <button
+                            type="button"
+                            className="quoted"
+                            title={strings.showInChat}
+                            onClick={() => message.replyTo && goToMessage(message.replyTo.id)}
+                          >
+                            <span className="quoted-author">
+                              <span className="codicon codicon-reply" aria-hidden="true" />
+                              {authorName(message.replyTo.author, strings, state.myUserId)}
+                            </span>
+                            <span className="quoted-text">{message.replyTo.excerpt}</span>
+                          </button>
+                        )}
+                        {message.body && <Markdown text={message.body} diagramError={strings.diagramError} />}
+                        <Attachments attachments={message.attachments} strings={strings} locale={locale} />
+                      </div>
+                      <div className="message-actions">
+                        <button
+                          type="button"
+                          className="icon-button"
+                          title={strings.reply}
+                          aria-label={strings.reply}
+                          onClick={() => setReplyTo(message)}
+                        >
+                          <span className="codicon codicon-reply" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </article>
+                    {(state.notes[message.id] ?? []).map((type) => (
+                      <div key={type} className="note-pill">
+                        <span>
+                          <span className={`codicon codicon-${NOTE_ICONS[type]}`} aria-hidden="true" />
+                          {strings.noted[type]}
+                        </span>
+                      </div>
+                    ))}
+                  </Fragment>
+                );
+              })}
+            </div>
           </div>
 
           <Composer

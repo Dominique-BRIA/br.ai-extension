@@ -239,6 +239,15 @@ export interface ChatStrings {
   catchUpCount: string;
   catchUpLoading: string;
   close: string;
+  /** Changement d'adresse */
+  editEmail: string;
+  newEmailLabel: string;
+  sendCode: string;
+  /** « Saisissez le code envoyé à {0}. » */
+  emailCodeIntro: string;
+  confirm: string;
+  emailChanged: string;
+  emailTaken: string;
   /** Coffre de secrets */
   vaultTitle: string;
   vaultDisabled: string;
@@ -362,6 +371,8 @@ export type ToWebview =
       /** Absent hors connexion. */
       settings: PanelSettings | null;
     }
+  /** Réponse à une étape du changement d'adresse ; `error` est le code d'erreur du serveur. */
+  | { type: "emailResult"; step: "request" | "verify"; ok: boolean; error?: string; message?: string }
   /** Le journal du coffre du projet ouvert (chef). */
   | { type: "secretLog"; entries: SecretLogResponse["entries"] }
   /** Les machines connectées au compte, pour les réglages. */
@@ -414,6 +425,8 @@ export type FromWebview =
   | { type: "updateProfile"; displayName?: string; locale?: Locale }
   | { type: "setSetting"; key: "lendMachine" | "showCookTerminal" | "notifyMentions"; value: boolean }
   | { type: "setServerUrl"; url: string }
+  | { type: "changeEmail"; email: string }
+  | { type: "verifyEmail"; email: string; code: string }
   | { type: "openLocalMemory" }
   | { type: "loadMachines" }
   | { type: "signOutMachine"; sessionId: string }

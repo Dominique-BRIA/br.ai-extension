@@ -868,12 +868,27 @@ button.link:hover {
   display: flex;
 }
 
+/* La citation est un bouton : un clic remonte au message d'origine. */
 .quoted {
+  display: block;
+  width: 100%;
   margin: 0 0 8px;
   padding: 6px 10px;
+  border: none;
   border-left: 3px solid var(--bria-accent);
   border-radius: 6px;
+  color: inherit;
   background: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+  text-align: left;
+}
+
+.quoted:hover {
+  background: color-mix(in srgb, var(--vscode-foreground) 11%, transparent);
+}
+
+.quoted-author,
+.quoted-text {
+  display: block;
 }
 
 .message.mine .quoted {
@@ -2175,6 +2190,14 @@ button.link:hover {
 
 .mode-list {
   margin: 6px -8px 0;
+}
+
+.email-change {
+  margin-top: 12px;
+}
+
+.email-change .field {
+  margin-top: 0;
 }
 
 .secondary-button.danger {

@@ -6,9 +6,10 @@ import type { ToWebview } from "../src/webviewMessages";
 import { Chat } from "./Chat";
 import type { Screen } from "./Header";
 import { Home } from "./Home";
-import { Notifications } from "./Notifications";
+import { Notifications, ScreenHeader } from "./Notifications";
 import { Settings } from "./Settings";
 import { SignIn } from "./SignIn";
+import { VaultSection } from "./Vault";
 import { post } from "./vscodeApi";
 
 type Snapshot = Extract<ToWebview, { type: "state" }>;
@@ -73,6 +74,26 @@ function App() {
     );
   } else if (screen === "settings" && settings) {
     content = <Settings settings={settings} strings={strings} locale={locale} onBack={back} />;
+  } else if (screen === "vault" && state.view === "project") {
+    content = (
+      <div className="panel-root">
+        <ScreenHeader
+          title={`${strings.vaultTitle} · ${state.projectName}`}
+          strings={strings}
+          onBack={back}
+        />
+        <div className="tab-body">
+          <VaultSection
+            vault={state.vault}
+            members={state.members}
+            isChef={state.isChef}
+            folderLinked={state.folderLinked}
+            strings={strings}
+            locale={locale}
+          />
+        </div>
+      </div>
+    );
   } else if (state.view === "home") {
     content = (
       <Home

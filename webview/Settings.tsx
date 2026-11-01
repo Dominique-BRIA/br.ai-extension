@@ -102,7 +102,7 @@ export function Settings({ settings, strings, locale, onBack }: Props) {
               </button>
             </div>
           </form>
-          <p className="meta">{settings.email}</p>
+          <EmailChange email={settings.email} strings={strings} />
           <div className="setting-row">
             <span className="setting-label">{strings.emailLanguage}</span>
             <fieldset className="segmented" aria-label={strings.emailLanguage}>
@@ -241,6 +241,148 @@ export function Settings({ settings, strings, locale, onBack }: Props) {
         <p className="meta version">{strings.version.replace("{0}", settings.version)}</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * L'adresse e-mail du compte et son changement : un code part vers la nouvelle adresse,
+ * qui ne remplace l'ancienne qu'une fois ce code saisi. Le code peut être renvoyé.
+ */
+function EmailChange({ email, strings }: { email: string; strings: ChatStrings }) {
+  const [step, setStep] = useState<"idle" | "email" | "code">("idle");
+  const [next, setNext] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      const message = event.data;
+      if (message.type !== "emailResult") return;
+      setBusy(false);
+      if (message.ok) {
+        setError(null);
+        if (message.step === "request") {
+          setStep("code");
+        } else {
+          setStep("idle");
+          setCode("");
+          setNotice(strings.emailChanged);
+        }
+        return;
+      }
+      setError(
+        message.error === "email_taken"
+          ? strings.emailTaken
+          : message.error === "code_invalid"
+            ? strings.codeInvalid
+            : message.error === "too_many_requests"
+              ? strings.codeAlreadySent
+              : (message.message ?? strings.serverUnreachable),
+      );
+      // Un code est déjà parti il y a moins d'une minute : on passe quand même à sa saisie.
+      if (message.step === "request" && message.error === "too_many_requests") setStep("code");
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [strings]);
+
+  const request = () => {
+    if (!/^\S+@\S+\.\S+$/.test(next.trim())) {
+      setError(strings.invalidEmail);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    post({ type: "changeEmail", email: next.trim() });
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    if (step === "email") request();
+    else if (/^\d{6}$/.test(code)) {
+      setBusy(true);
+      post({ type: "verifyEmail", email: next.trim(), code });
+    }
+  };
+
+  const cancel = () => {
+    setStep("idle");
+    setNext("");
+    setCode("");
+    setError(null);
+  };
+
+  if (step === "idle") {
+    return (
+      <div className="setting-row">
+        <span className="setting-text">
+          <span className="setting-label">{strings.emailLabel}</span>
+          <span className="meta">{email}</span>
+          {notice && <span className="saved">{notice}</span>}
+        </span>
+        <button type="button" className="secondary-button" onClick={() => setStep("email")}>
+          {strings.editEmail}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="setting-form email-change" onSubmit={submit}>
+      {step === "email" ? (
+        <label className="field">
+          <span className="field-label">{strings.newEmailLabel}</span>
+          <span className="field-box">
+            <span className="codicon codicon-mail" aria-hidden="true" />
+            <input
+              type="email"
+              autoComplete="email"
+              placeholder={strings.emailPlaceholder}
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+            />
+          </span>
+        </label>
+      ) : (
+        <label className="field">
+          <span className="field-label">{strings.emailCodeIntro.replace("{0}", next.trim())}</span>
+          <input
+            className="code-input"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="••••••"
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+          />
+        </label>
+      )}
+      {error && (
+        <p className="auth-error" role="alert">
+          <span className="codicon codicon-error" aria-hidden="true" />
+          {error}
+        </p>
+      )}
+      <div className="setting-actions">
+        {step === "code" && (
+          <button type="button" className="link" disabled={busy} onClick={request}>
+            {strings.resendCode}
+          </button>
+        )}
+        <span className="spacer" />
+        <button type="button" className="secondary-button" onClick={cancel}>
+          {strings.cancel}
+        </button>
+        <button type="submit" className="primary-button" disabled={busy}>
+          {busy && <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />}
+          {step === "email" ? strings.sendCode : strings.confirm}
+        </button>
+      </div>
+    </form>
   );
 }
 

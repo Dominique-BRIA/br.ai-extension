@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import type {
   CatchUpResponse,
   CreateInvitationResponse,
@@ -288,6 +288,28 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           .getConfiguration("bria")
           .update(message.key, message.value, vscode.ConfigurationTarget.Global);
         return;
+      case "changeEmail":
+        try {
+          await this.#sources.api.post("/me/email", { email: message.email });
+          this.#postRaw({ type: "emailResult", step: "request", ok: true });
+        } catch (error) {
+          this.#postRaw({ type: "emailResult", step: "request", ok: false, ...errorOf(error) });
+        }
+        return;
+      case "verifyEmail": {
+        const token = this.#sources.session.token;
+        try {
+          const { user } = await this.#sources.api.post<{ user: User }>("/me/email/verify", {
+            email: message.email,
+            code: message.code,
+          });
+          if (token) await this.#sources.session.signedIn(token, user);
+          this.#postRaw({ type: "emailResult", step: "verify", ok: true });
+        } catch (error) {
+          this.#postRaw({ type: "emailResult", step: "verify", ok: false, ...errorOf(error) });
+        }
+        return;
+      }
       case "setServerUrl":
         await this.#setServerUrl(message.url);
         return;
@@ -702,16 +724,21 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     return found ? { kind: "team" as const, team: found.team } : undefined;
   }
 
-  /** Ouvre un fichier produit par le cuisinier, s'il est présent sur cette machine. */
+  /**
+   * Ouvre un fichier produit par le cuisinier, s'il est présent sur cette machine. Son chemin
+   * est relatif au dossier du projet, ou absolu quand il a écrit ailleurs (sur le Bureau…).
+   */
   async #openProjectFile(path: string): Promise<void> {
     const root = this.#projectId ? this.#sources.folders.get(this.#projectId) : undefined;
-    if (!root) {
+    if (!root && !isAbsolute(path)) {
       void vscode.window.showInformationMessage(
         vscode.l10n.t("Link a folder to this project to open its files on this machine."),
       );
       return;
     }
-    const file = vscode.Uri.joinPath(vscode.Uri.file(root), path);
+    const file = isAbsolute(path)
+      ? vscode.Uri.file(path)
+      : vscode.Uri.joinPath(vscode.Uri.file(root ?? ""), path);
     try {
       await vscode.workspace.fs.stat(file);
     } catch {
@@ -1202,6 +1229,13 @@ function chatStrings(): ChatStrings {
     catchUpCount: t("{0} new message(s)"),
     catchUpLoading: t("<br>.ia is summarizing what happened…"),
     close: t("Close"),
+    editEmail: t("Change"),
+    newEmailLabel: t("New email address"),
+    sendCode: t("Send a code"),
+    emailCodeIntro: t("Enter the code sent to {0}."),
+    confirm: t("Confirm"),
+    emailChanged: t("Your address has been changed."),
+    emailTaken: t("This address is already used by another account."),
     vaultTitle: t("Secrets vault"),
     vaultDisabled: t("The secrets vault is not enabled on this server."),
     vaultEmpty: t(
