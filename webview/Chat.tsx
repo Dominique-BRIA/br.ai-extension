@@ -370,6 +370,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
           chefName={state.chefName}
           invitation={state.invitation}
           vault={state.vault}
+          usage={state.usage}
           members={state.members}
           myUserId={state.myUserId}
           isChef={state.isChef}

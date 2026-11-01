@@ -2240,6 +2240,76 @@ button.link:hover {
   text-align: center;
 }
 
+/* Formule et consommation */
+
+.usage-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.usage-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.usage-head > .codicon:first-child {
+  color: var(--bria-accent);
+}
+
+.usage-plan {
+  font-weight: 700;
+}
+
+.usage-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+  overflow: hidden;
+}
+
+.usage-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--bria-accent);
+}
+
+.usage-track.high .usage-bar {
+  background: var(--bria-warm);
+}
+
+.usage-track.full .usage-bar {
+  background: var(--bria-danger);
+}
+
+.usage-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.usage-card > .meta {
+  margin: 6px 0 0;
+}
+
+.usage-members-title {
+  display: block;
+  margin-top: 10px;
+}
+
+.usage-member {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-top: 1px solid var(--border);
+}
+
 /* Coffre de secrets */
 
 .access-list {

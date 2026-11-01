@@ -350,5 +350,12 @@
   "Notify me of mentions and finished orders": "Me prévenir des mentions et des commandes terminées",
   "Order {0} is done: {1}": "La commande n° {0} est terminée : {1}",
   "Order {0} could not be completed: {1}": "La commande n° {0} n'a pas abouti : {1}",
-  "Order {0} was stopped: {1}": "La commande n° {0} a été arrêtée : {1}"
+  "Order {0} was stopped: {1}": "La commande n° {0} a été arrêtée : {1}",
+  "{0} plan": "Formule {0}",
+  "until {0}": "jusqu'au {0}",
+  "{0} / {1} credits this month": "{0} / {1} crédits ce mois-ci",
+  "including {0} bonus": "dont {0} en bonus",
+  "Up to {0} member(s) and {1} project(s)": "Jusqu'à {0} membre(s) et {1} projet(s)",
+  "Usage by member": "Consommation par membre",
+  "AI is free during the beta: credits measure usage.": "Les IA sont gratuites pendant la bêta : les crédits mesurent la consommation."
 }

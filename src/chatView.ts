@@ -16,6 +16,7 @@ import type {
   SecretValuesResponse,
   SessionsResponse,
   Team,
+  TeamUsage,
   User,
   VerifyCodeResponse,
 } from "@br-ia/protocol";
@@ -89,6 +90,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #revertable: string[] = [];
   /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
   readonly #invitations = new Map<string, TeamInvitation | null>();
+  /** Formule et consommation de chaque équipe, une fois chargées. */
+  readonly #usages = new Map<string, TeamUsage>();
   /** Coffre de secrets de chaque projet, une fois chargé. */
   readonly #vaults = new Map<string, SecretsResponse>();
   /** Résumé d'absence du projet ouvert. */
@@ -128,6 +131,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           this.#messages = [];
           this.#invitations.clear();
           this.#vaults.clear();
+          this.#usages.clear();
         }
         this.#post();
       }),
@@ -328,6 +332,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "openNotification":
         await this.open(message.projectId);
         if (message.messageId) await this.reveal(message.messageId);
+        return;
+      case "usage":
+        await this.#loadUsage();
         return;
       case "vault":
         if (message.action === "load") await this.#loadVault();
@@ -586,6 +593,20 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       await this.#sources.api.delete(`/me/sessions/${sessionId}`);
       if (sessions.find((machine) => machine.id === sessionId)?.current) await this.#sources.session.clear();
       else await this.#loadMachines();
+    } catch (error) {
+      this.#reportError(error);
+    }
+  }
+
+  async #loadUsage(): Promise<void> {
+    const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+    if (!found) return;
+    try {
+      this.#usages.set(
+        found.team.id,
+        await this.#sources.api.get<TeamUsage>(`/teams/${found.team.id}/usage`),
+      );
+      this.#post();
     } catch (error) {
       this.#reportError(error);
     }
@@ -905,6 +926,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       permissionMode: vscode.workspace
         .getConfiguration("bria")
         .get<PermissionMode>("permissionMode", "manual"),
+      usage: this.#usages.get(found.team.id),
       vault: this.#vaults.get(found.project.id),
       catchUp:
         this.#catchUp?.projectId === found.project.id
@@ -1262,6 +1284,13 @@ function chatStrings(): ChatStrings {
     confirm: t("Confirm"),
     emailChanged: t("Your address has been changed."),
     emailTaken: t("This address is already used by another account."),
+    planTitle: t("{0} plan"),
+    planUntil: t("until {0}"),
+    creditsUsed: t("{0} / {1} credits this month"),
+    bonusCredits: t("including {0} bonus"),
+    planLimits: t("Up to {0} member(s) and {1} project(s)"),
+    usageByMember: t("Usage by member"),
+    betaFree: t("AI is free during the beta: credits measure usage."),
     vaultTitle: t("Secrets vault"),
     vaultDisabled: t("The secrets vault is not enabled on this server."),
     vaultEmpty: t(

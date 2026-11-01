@@ -1,8 +1,9 @@
-import type { Order, SecretsResponse } from "@br-ia/protocol";
+import type { Order, SecretsResponse, TeamUsage } from "@br-ia/protocol";
 import { useEffect, useState } from "react";
 import type { ChatMember, ChatStrings, TeamInvitation } from "../src/webviewMessages";
 import { formatRelative, initials } from "./format";
 import { activeOrder, orderCode } from "./Orders";
+import { UsageCard } from "./Usage";
 import { VaultSection } from "./Vault";
 import { post } from "./vscodeApi";
 
@@ -15,6 +16,8 @@ interface Props {
   isChef: boolean;
   /** Clé d'invitation en cours (chef) ; `undefined` tant qu'elle n'est pas chargée. */
   invitation: TeamInvitation | null | undefined;
+  /** Formule et consommation ; `undefined` tant qu'elles ne sont pas chargées. */
+  usage: TeamUsage | undefined;
   /** Coffre de secrets ; `undefined` tant qu'il n'est pas chargé. */
   vault: SecretsResponse | undefined;
   connected: boolean;
@@ -45,6 +48,8 @@ export function TeamTab(props: Props) {
           <span className="codicon codicon-organization" aria-hidden="true" />
         </span>
       </article>
+
+      <UsageCard usage={props.usage} isChef={props.isChef} strings={strings} locale={locale} />
 
       <InvitationCard
         isChef={props.isChef}

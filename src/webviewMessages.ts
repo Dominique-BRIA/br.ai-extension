@@ -11,6 +11,7 @@ import type {
   OrderStatus,
   SecretLogResponse,
   SecretsResponse,
+  TeamUsage,
 } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 import type { PermissionMode } from "./cook/executor";
@@ -254,6 +255,14 @@ export interface ChatStrings {
   confirm: string;
   emailChanged: string;
   emailTaken: string;
+  /** Formule et crédits */
+  planTitle: string;
+  planUntil: string;
+  creditsUsed: string;
+  bonusCredits: string;
+  planLimits: string;
+  usageByMember: string;
+  betaFree: string;
   /** Coffre de secrets */
   vaultTitle: string;
   vaultDisabled: string;
@@ -342,6 +351,8 @@ export type ChatViewState =
       permissionMode: PermissionMode;
       /** Résumé « pendant votre absence », affiché en haut du chat jusqu'à ce qu'on le ferme. */
       catchUp: CatchUp | null;
+      /** Formule et consommation de l'équipe ; `undefined` tant qu'elles ne sont pas chargées. */
+      usage?: TeamUsage;
       /** Coffre de secrets du projet ; `undefined` tant qu'il n'est pas chargé. */
       vault?: SecretsResponse;
     };
@@ -450,6 +461,7 @@ export type FromWebview =
   | { type: "openNotification"; projectId: string; messageId: string | null }
   | { type: "dismissCatchUp" }
   | { type: "vault"; action: "load" | "log" | "writeEnv" }
+  | { type: "usage" }
   | { type: "createSecret"; name: string; value: string; access: string[] }
   | { type: "updateSecret"; id: string; value?: string; access?: string[] }
   | { type: "deleteSecret"; id: string }
