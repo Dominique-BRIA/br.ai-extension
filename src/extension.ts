@@ -1,4 +1,7 @@
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { MachineInfo } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { Api } from "./api";
@@ -23,8 +26,8 @@ import { WorkspaceStore } from "./workspaceStore";
 const MACHINE_ID_KEY = "bria.machineId";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const log = vscode.window.createOutputChannel("br.ia", { log: true });
-  const machine = machineInfo(context);
+  const log = vscode.window.createOutputChannel("<br>.ia", { log: true });
+  const machine = await machineInfo(context);
   const session = new Session(context);
 
   const api = new Api(
@@ -48,6 +51,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     orders,
     folders,
     checkpoints,
+    machineId: machine.id,
   });
   const ordersTree = new OrdersTreeProvider(orders, store, checkpoints, () => chat.openProjectId, folders);
   const cookTerminal = new CookTerminal();
@@ -60,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   async function expireSession() {
     if (!session.token) return;
     await session.clear();
-    void vscode.window.showWarningMessage(vscode.l10n.t("Your br.ia session has expired. Sign in again."));
+    void vscode.window.showWarningMessage(vscode.l10n.t("Your <br>.ia session has expired. Sign in again."));
   }
 
   const updateContext = () =>
@@ -130,7 +134,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       proposals,
       checkpoints,
       log,
-      machineId: machine.id,
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("bria.serverUrl") && session.token) connection.connect();
@@ -153,8 +156,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {}
 
+/**
+ * Dossier personnel, Bureau et Documents de la personne. Sous Windows, ils sont lus dans le
+ * registre, car le Bureau peut avoir été déplacé (OneDrive, autre lecteur).
+ */
+async function userFolders(): Promise<NonNullable<MachineInfo["folders"]>> {
+  const home = homedir();
+  const folders = { home, desktop: join(home, "Desktop"), documents: join(home, "Documents") };
+  if (process.platform !== "win32") return folders;
+  const output = await new Promise<string>((done) =>
+    execFile(
+      "reg",
+      ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"],
+      { timeout: 3000, windowsHide: true },
+      (error, stdout) => done(error ? "" : stdout),
+    ),
+  );
+  const value = (name: string) => new RegExp(`^\\s*${name}\\s+REG_SZ\\s+(.+?)\\s*$`, "m").exec(output)?.[1];
+  return {
+    home,
+    desktop: value("Desktop") ?? folders.desktop,
+    documents: value("Personal") ?? folders.documents,
+  };
+}
+
 /** Identité de cette machine, transmise au serveur. L'identifiant est créé une fois puis conservé. */
-function machineInfo(context: vscode.ExtensionContext): MachineInfo {
+async function machineInfo(context: vscode.ExtensionContext): Promise<MachineInfo> {
   let id = context.globalState.get<string>(MACHINE_ID_KEY);
   if (!id) {
     id = randomUUID();
@@ -174,5 +201,6 @@ function machineInfo(context: vscode.ExtensionContext): MachineInfo {
     editor: vscode.env.appName,
     editorVersion: vscode.version,
     extensionVersion: String(context.extension.packageJSON.version),
+    folders: await userFolders(),
   };
 }

@@ -3,7 +3,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessages";
 import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
-import { authorName, continuesPrevious, formatDay, formatTime, sameDay } from "./format";
+import { authorName, continuesPrevious, formatDay, formatTime, initials, sameDay } from "./format";
 import { BottomNav, Header, type Tab } from "./Header";
 import { Markdown } from "./Markdown";
 import { MemoryTab } from "./MemoryTab";
@@ -30,14 +30,9 @@ interface Props {
 }
 
 /** Initiales d'un membre, ou « IA » pour les agents. */
-function initials(author: MessageAuthor, strings: ChatStrings): string {
+function authorInitials(author: MessageAuthor, strings: ChatStrings): string {
   if (author.kind === "serveur" || author.kind === "cuisinier") return "IA";
-  const letters = authorName(author, strings)
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("");
-  return letters.slice(0, 2).toUpperCase() || "?";
+  return initials(authorName(author, strings));
 }
 
 /** Le panneau d'un projet : en-tête, l'onglet choisi, puis la navigation du bas. */
@@ -194,11 +189,11 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
                           <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
                         ) : (
                           <span className={agent ? "initials agent" : "initials"}>
-                            {initials(message.author, strings)}
+                            {authorInitials(message.author, strings)}
                           </span>
                         )}
                         <span className="author">{authorName(message.author, strings, state.myUserId)}</span>
-                        {agent && <span className="agent-label">br.ia</span>}
+                        {agent && <span className="agent-label">{"<br>.ia"}</span>}
                         {!mine && (
                           <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
                         )}
@@ -251,6 +246,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
             strings={strings}
             locale={locale}
             sentCount={sentCount}
+            permissionMode={state.permissionMode}
           />
         </>
       )}
@@ -259,6 +255,8 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount }: 
         <TeamTab
           teamName={state.teamName}
           projectName={state.projectName}
+          chefName={state.chefName}
+          invitation={state.invitation}
           members={state.members}
           myUserId={state.myUserId}
           isChef={state.isChef}

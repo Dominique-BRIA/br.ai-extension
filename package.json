@@ -1,6 +1,6 @@
 {
   "name": "br-ia",
-  "displayName": "br.ia",
+  "displayName": "<br>.ia",
   "description": "%description%",
   "icon": "media/logo.png",
   "version": "0.5.0",
@@ -29,14 +29,14 @@
       "activitybar": [
         {
           "id": "bria",
-          "title": "br.ia",
+          "title": "<br>.ia",
           "icon": "media/bria.svg"
         }
       ],
       "secondarySidebar": [
         {
           "id": "bria-chat",
-          "title": "br.ia",
+          "title": "<br>.ia",
           "icon": "media/bria.svg"
         }
       ]
@@ -71,217 +71,217 @@
       {
         "command": "bria.signIn",
         "title": "%command.signIn%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(account)"
       },
       {
         "command": "bria.signOut",
         "title": "%command.signOut%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(sign-out)"
       },
       {
         "command": "bria.connect",
         "title": "%command.connect%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(plug)"
       },
       {
         "command": "bria.disconnect",
         "title": "%command.disconnect%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(debug-disconnect)"
       },
       {
         "command": "bria.showLog",
         "title": "%command.showLog%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(output)"
       },
       {
         "command": "bria.refresh",
         "title": "%command.refresh%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(refresh)"
       },
       {
         "command": "bria.createTeam",
         "title": "%command.createTeam%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(add)"
       },
       {
         "command": "bria.joinTeam",
         "title": "%command.joinTeam%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(sign-in)"
       },
       {
         "command": "bria.invite",
         "title": "%command.invite%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(person-add)"
       },
       {
         "command": "bria.leaveTeam",
         "title": "%command.leaveTeam%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.createProject",
         "title": "%command.createProject%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(new-file)"
       },
       {
         "command": "bria.openProject",
         "title": "%command.openProject%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.renameProject",
         "title": "%command.renameProject%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(edit)"
       },
       {
         "command": "bria.archiveProject",
         "title": "%command.archiveProject%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(archive)"
       },
       {
         "command": "bria.removeMember",
         "title": "%command.removeMember%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.transferChef",
         "title": "%command.transferChef%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.editProfile",
         "title": "%command.editProfile%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(account)"
       },
       {
         "command": "bria.manageMachines",
         "title": "%command.manageMachines%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(vm)"
       },
       {
         "command": "bria.deleteAccount",
         "title": "%command.deleteAccount%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.memory.resolve",
         "title": "%command.memory.resolve%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(check)"
       },
       {
         "command": "bria.memory.reopen",
         "title": "%command.memory.reopen%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(discard)"
       },
       {
         "command": "bria.memory.stop",
         "title": "%command.memory.stop%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(debug-stop)"
       },
       {
         "command": "bria.memory.reveal",
         "title": "%command.memory.reveal%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(comment)"
       },
       {
         "command": "bria.memory.openDocument",
         "title": "%command.memory.openDocument%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(open-preview)"
       },
       {
         "command": "bria.memory.refresh",
         "title": "%command.memory.refresh%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(refresh)"
       },
       {
         "command": "bria.linkFolder",
         "title": "%command.linkFolder%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(folder)"
       },
       {
         "command": "bria.unlinkFolder",
         "title": "%command.unlinkFolder%",
-        "category": "br.ia"
+        "category": "<br>.ia"
       },
       {
         "command": "bria.setPermissionMode",
         "title": "%command.setPermissionMode%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(shield)"
       },
       {
         "command": "bria.toggleLending",
         "title": "%command.toggleLending%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(vm-connect)"
       },
       {
         "command": "bria.order.stop",
         "title": "%command.order.stop%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(debug-stop)"
       },
       {
         "command": "bria.order.stopCurrent",
         "title": "%command.order.stopCurrent%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(debug-stop)"
       },
       {
         "command": "bria.order.revert",
         "title": "%command.order.revert%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(discard)"
       },
       {
         "command": "bria.orders.refresh",
         "title": "%command.orders.refresh%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(refresh)"
       },
       {
         "command": "bria.proposal.accept",
         "title": "%command.proposal.accept%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(check)"
       },
       {
         "command": "bria.proposal.reject",
         "title": "%command.proposal.reject%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(close)"
       },
       {
         "command": "bria.showCookTerminal",
         "title": "%command.showCookTerminal%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(terminal)"
       },
       {
         "command": "bria.openChatInEditor",
         "title": "%command.openChatInEditor%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": {
           "light": "media/logo-bouton.png",
           "dark": "media/logo-bouton.png"
@@ -290,7 +290,7 @@
       {
         "command": "bria.memory.add",
         "title": "%command.memory.add%",
-        "category": "br.ia",
+        "category": "<br>.ia",
         "icon": "$(add)"
       }
     ],
@@ -650,7 +650,7 @@
       ]
     },
     "configuration": {
-      "title": "br.ia",
+      "title": "<br>.ia",
       "properties": {
         "bria.serverUrl": {
           "type": "string",

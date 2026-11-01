@@ -1,5 +1,6 @@
 import type { Attachment, Message } from "@br-ia/protocol";
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { PermissionMode } from "../src/cook/executor";
 import type { ChatMember, ChatStrings, ToWebview } from "../src/webviewMessages";
 import { Attachments } from "./Attachments";
 import { authorName } from "./format";
@@ -15,6 +16,78 @@ interface Props {
   locale: string;
   /** Incrémenté par le parent quand l'envoi a réussi. */
   sentCount: number;
+  permissionMode: PermissionMode;
+}
+
+const MODE_ICONS: Record<PermissionMode, string> = {
+  manual: "shield",
+  autoEdit: "edit",
+  auto: "zap",
+  plan: "checklist",
+};
+
+/** Ce que le cuisinier peut faire sur cette machine, choisi à côté du bouton d'envoi. */
+function ModeMenu({ mode, strings }: { mode: PermissionMode; strings: ChatStrings }) {
+  const [open, setOpen] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    // Un clic ailleurs ou Échap referme le menu.
+    const onMouseDown = (event: MouseEvent) => {
+      if (!menu.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="mode-menu" ref={menu}>
+      <button
+        type="button"
+        className="mode-button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={strings.modeTitle}
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`codicon codicon-${MODE_ICONS[mode]}`} aria-hidden="true" />
+        {strings.modes[mode]}
+      </button>
+      {open && (
+        <div className="mode-popover" role="menu" aria-label={strings.modeTitle}>
+          <div className="mode-popover-title">{strings.modeTitle}</div>
+          {(Object.keys(MODE_ICONS) as PermissionMode[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="menuitemradio"
+              aria-checked={item === mode}
+              className={item === mode ? "mode-option active" : "mode-option"}
+              onClick={() => {
+                post({ type: "setPermissionMode", mode: item });
+                setOpen(false);
+              }}
+            >
+              <span className={`codicon codicon-${MODE_ICONS[item]}`} aria-hidden="true" />
+              <span className="mode-option-text">
+                <span className="mode-option-name">{strings.modes[item]}</span>
+                <span className="meta">{strings.modeDetails[item]}</span>
+              </span>
+              {item === mode && <span className="codicon codicon-check" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const BRIA: ChatMember = {
@@ -241,17 +314,8 @@ export function Composer(props: Props) {
           {strings.quickTerminal}
         </button>
       </div>
-      <div className="composer-row">
-        <button
-          type="button"
-          className="attach-button"
-          onClick={() => post({ type: "attach", pending: pending.length })}
-          title={strings.attach}
-          aria-label={strings.attach}
-        >
-          <span className="codicon codicon-attach" aria-hidden="true" />
-        </button>
-        <div className="input-box">
+      <div className="input-box">
+        <div className="input-area">
           <textarea
             ref={textarea}
             value={text}
@@ -272,16 +336,30 @@ export function Composer(props: Props) {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="send-button"
-          onClick={send}
-          disabled={(!text.trim() && pending.length === 0) || sending}
-          title={strings.send}
-          aria-label={strings.send}
-        >
-          <span className="codicon codicon-send" aria-hidden="true" />
-        </button>
+        {/* Barre du bas, comme chez Claude : joindre à gauche ; le mode et l'envoi à droite. */}
+        <div className="composer-toolbar">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => post({ type: "attach", pending: pending.length })}
+            title={strings.attach}
+            aria-label={strings.attach}
+          >
+            <span className="codicon codicon-add" aria-hidden="true" />
+          </button>
+          <span className="spacer" />
+          <ModeMenu mode={props.permissionMode} strings={strings} />
+          <button
+            type="button"
+            className="send-button"
+            onClick={send}
+            disabled={(!text.trim() && pending.length === 0) || sending}
+            title={strings.send}
+            aria-label={strings.send}
+          >
+            <span className="codicon codicon-arrow-up" aria-hidden="true" />
+          </button>
+        </div>
       </div>
       <p className="composer-hint">{strings.composerHint}</p>
     </div>

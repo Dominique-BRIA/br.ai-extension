@@ -12,11 +12,6 @@ import type { PermissionMode } from "./cook/executor";
 
 /** Textes de l'interface, traduits côté extension puis transmis à la webview. */
 export interface ChatStrings {
-  signedOutTitle: string;
-  signedOutBody: string;
-  signIn: string;
-  noProjectTitle: string;
-  noProjectBody: string;
   emptyChatTitle: string;
   emptyChatBody: string;
   connecting: string;
@@ -69,6 +64,9 @@ export interface ChatStrings {
   /** « Mode : {0} » */
   mode: string;
   modes: Record<PermissionMode, string>;
+  /** Ce que chaque mode permet, sous son nom dans le menu du champ de saisie. */
+  modeDetails: Record<PermissionMode, string>;
+  modeTitle: string;
   changeMode: string;
   memoryGroups: Record<MemoryType | "history", string>;
   memoryStatus: Record<MemoryStatus, string>;
@@ -142,7 +140,87 @@ export interface ChatStrings {
   neverSeen: string;
   invite: string;
   lendMachine: string;
+  /** Connexion */
+  authWelcome: string;
+  authIntro: string;
+  emailLabel: string;
+  emailPlaceholder: string;
+  getCode: string;
+  invitationTitle: string;
+  invitationIntro: string;
+  invitationLabel: string;
+  continue: string;
+  nameTitle: string;
+  nameIntro: string;
+  nameLabel: string;
+  codeTitle: string;
+  /** « Saisissez le code à 6 chiffres envoyé à {0}. » */
+  codeIntro: string;
+  codeLabel: string;
+  signInButton: string;
+  resendCode: string;
+  codeResent: string;
+  changeEmail: string;
+  back: string;
+  invalidEmail: string;
+  codeInvalid: string;
+  invitationInvalid: string;
+  codeAlreadySent: string;
+  serverUnreachable: string;
+  authFooter: string;
+  /** Accueil */
+  homeGreeting: string;
+  homeIntro: string;
+  yourTeams: string;
+  noTeamsTitle: string;
+  noTeamsBody: string;
+  createTeam: string;
+  teamNamePlaceholder: string;
+  joinTeam: string;
+  teamKeyPlaceholder: string;
+  join: string;
+  create: string;
+  cancel: string;
+  newProject: string;
+  projectNamePlaceholder: string;
+  noProjects: string;
+  projectCount: string;
+  account: string;
+  editProfile: string;
+  machines: string;
+  signOut: string;
+  allProjects: string;
+  /** Clé d'invitation et gestion de l'équipe */
+  inviteKeyTitle: string;
+  inviteKeyIntro: string;
+  inviteKeyNone: string;
+  inviteKeyMember: string;
+  generateKey: string;
+  newKey: string;
+  copy: string;
+  copied: string;
+  validUntil: string;
+  leaveTeam: string;
+  removeMember: string;
+  makeChef: string;
 }
+
+export interface HomeTeam {
+  id: string;
+  name: string;
+  isChef: boolean;
+  memberCount: number;
+  onlineCount: number;
+  projects: { id: string; name: string }[];
+}
+
+export interface TeamInvitation {
+  code: string;
+  expiresAt: string;
+}
+
+/** Formulaires de l'accueil, dont la webview attend le résultat. */
+export type HomeForm = "createTeam" | "joinTeam" | "createProject";
 
 export interface ChatMember {
   userId: string;
@@ -154,12 +232,21 @@ export interface ChatMember {
 
 export type ChatViewState =
   | { view: "signedOut" }
-  | { view: "noProject" }
+  | {
+      view: "home";
+      user: { displayName: string; email: string };
+      /** Absent tant que l'espace de travail n'est pas chargé. */
+      teams: HomeTeam[] | null;
+    }
   | {
       view: "project";
       projectId: string;
       projectName: string;
+      teamId: string;
       teamName: string;
+      chefName: string;
+      /** Clé d'invitation en cours (chef seulement) ; `undefined` tant qu'elle n'est pas chargée. */
+      invitation?: TeamInvitation | null;
       myUserId: string;
       isChef: boolean;
       members: ChatMember[];
@@ -187,13 +274,25 @@ export type ToWebview =
       strings: ChatStrings;
       locale: string;
       logoUri: string;
+      /** Le logo complet, avec le nom et la devise, pour l'écran de connexion. */
+      wordmarkUri: string;
     }
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
   | { type: "sendResult"; ok: boolean }
   /** Fichiers envoyés au serveur, à joindre au prochain message de ce projet. */
   | { type: "attached"; projectId: string; attachments: Attachment[] }
   /** Faire défiler jusqu'à un message et le mettre en évidence. */
-  | { type: "reveal"; messageId: string };
+  | { type: "reveal"; messageId: string }
+  /** Réponse à une étape de connexion ; `error` est le code d'erreur du serveur, `message` son texte. */
+  | {
+      type: "authResult";
+      step: "requestCode" | "verifyCode";
+      ok: boolean;
+      newAccount?: boolean;
+      error?: string;
+      message?: string;
+    }
+  | { type: "formResult"; form: HomeForm; ok: boolean; error?: string };
 
 /** Commandes de l'extension que la webview peut déclencher. */
 export type WebviewCommand =
@@ -205,12 +304,25 @@ export type WebviewCommand =
   | "newNote"
   | "invite"
   | "toggleLending"
-  | "menu";
+  | "menu"
+  | "leaveTeam"
+  | "editProfile"
+  | "manageMachines"
+  | "signOut";
 
 /** Webview → extension. */
 export type FromWebview =
   | { type: "ready" }
-  | { type: "signIn" }
+  | { type: "requestCode"; email: string; invitationCode?: string }
+  | { type: "verifyCode"; email: string; code: string; displayName?: string }
+  | { type: "openProject"; projectId: string | null }
+  | { type: "createTeam"; name: string }
+  | { type: "joinTeam"; code: string }
+  | { type: "createProject"; teamId: string; name: string }
+  | { type: "invitation"; action: "load" | "create" }
+  | { type: "copy"; text: string }
+  | { type: "memberAction"; userId: string; action: "remove" | "transfer" }
+  | { type: "setPermissionMode"; mode: PermissionMode }
   | { type: "connect" }
   | { type: "showLog" }
   | { type: "loadOlder" }

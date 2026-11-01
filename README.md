@@ -1,6 +1,6 @@
-# br.ia — extension VS Code
+# \<br\>.ia — extension VS Code
 
-L'extension br.ia : le chat d'équipe dans la barre latérale, et l'exécution du travail de l'agent cuisinier sur cette machine.
+L'extension \<br\>.ia : le chat d'équipe dans la barre latérale, et l'exécution du travail de l'agent cuisinier sur cette machine.
 
 Elle fonctionne dans VS Code, Cursor et Windsurf (VS Code 1.95 ou plus).
 
@@ -22,7 +22,7 @@ br-ia/
    npm run build
    ```
 
-3. Ouvrir ce dossier dans VS Code et lancer **Lancer l'extension** (F5). Une nouvelle fenêtre s'ouvre avec br.ia dans la barre d'activité ; elle se connecte au serveur au démarrage.
+3. Ouvrir ce dossier dans VS Code et lancer **Lancer l'extension** (F5). Une nouvelle fenêtre s'ouvre avec <br>.ia dans la barre d'activité ; elle se connecte au serveur au démarrage.
 
 L'adresse du serveur se règle avec le paramètre `bria.serverUrl` (par défaut `http://127.0.0.1:4000`).
 

@@ -2,7 +2,7 @@
   "description": "Chat d'équipe où l'IA note vos décisions, arbitre vos désaccords et construit sur vos machines.",
   "view.teams": "Équipes",
   "view.chat": "Chat",
-  "welcome.signedOut": "Connectez-vous pour rejoindre le chat de votre équipe.\n[Se connecter](command:bria.signIn)\nbr.ia est en bêta privée : il faut un code d'invitation pour créer un compte.",
+  "welcome.signedOut": "Connectez-vous pour rejoindre le chat de votre équipe.\n[Se connecter](command:bria.signIn)\nLa bêta est privée : il faut un code d'invitation pour créer un compte.",
   "welcome.noTeams": "Vous ne faites encore partie d'aucune équipe.\n[Créer une équipe](command:bria.createTeam)\n[Rejoindre une équipe](command:bria.joinTeam)\nPour rejoindre une équipe, demandez un code d'invitation à son chef.",
   "command.signIn": "Se connecter",
   "command.signOut": "Se déconnecter",
@@ -20,7 +20,7 @@
   "command.archiveProject": "Archiver le projet",
   "command.removeMember": "Retirer de l'équipe",
   "command.transferChef": "Nommer chef d'équipe",
-  "config.serverUrl": "Adresse du serveur br.ia.",
+  "config.serverUrl": "Adresse du serveur <br>.ia.",
   "config.notifyMentions": "Afficher une notification quand un membre vous mentionne.",
   "command.editProfile": "Modifier mon profil",
   "command.manageMachines": "Gérer mes machines connectées",
@@ -54,7 +54,7 @@
   "config.permissionMode.plan": "Le cuisinier lit et propose, mais ne modifie rien.",
   "config.lendMachine": "Laisser le cuisinier travailler sur cette machine pour les commandes de vos coéquipiers quand ils ne sont pas connectés.",
   "command.showCookTerminal": "Voir ce que lance le cuisinier",
-  "command.openChatInEditor": "Ouvrir br.ia",
+  "command.openChatInEditor": "Ouvrir <br>.ia",
   "config.showCookTerminal": "Ouvrir automatiquement le terminal du cuisinier quand il lance une commande sur cette machine.",
   "command.memory.add": "Nouvelle note"
 }

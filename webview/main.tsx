@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { ToWebview } from "../src/webviewMessages";
 import { Chat } from "./Chat";
+import { Home } from "./Home";
+import { SignIn } from "./SignIn";
 import { post } from "./vscodeApi";
 
 type Snapshot = Extract<ToWebview, { type: "state" }>;
 
+/** Le panneau : la connexion, puis l'accueil (équipes et projets), puis le projet ouvert. */
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [sentCount, setSentCount] = useState(0);
@@ -23,72 +26,55 @@ function App() {
   }, []);
 
   if (!snapshot) return null;
-  const { state, strings, connection, locale, logoUri } = snapshot;
+  const { state, strings, connection, locale, logoUri, wordmarkUri } = snapshot;
 
-  if (state.view === "signedOut") {
-    return (
-      <Panel title={strings.signedOutTitle} body={strings.signedOutBody}>
-        <button type="button" className="primary" onClick={() => post({ type: "signIn" })}>
-          {strings.signIn}
+  if (state.view === "signedOut") return <SignIn wordmarkUri={wordmarkUri} strings={strings} />;
+
+  const connected = connection.status === "connected";
+  const banner = connected ? null : (
+    <div className="banner" role="status">
+      <span>
+        {connection.status === "connecting"
+          ? strings.connecting
+          : connection.status === "failed"
+            ? connection.message
+            : strings.disconnected}
+      </span>
+      {connection.status === "disconnected" && (
+        <button type="button" className="link" onClick={() => post({ type: "connect" })}>
+          {strings.connect}
         </button>
-      </Panel>
-    );
-  }
-
-  const banner =
-    connection.status === "connected" ? null : (
-      <div className="banner" role="status">
-        <span>
-          {connection.status === "connecting"
-            ? strings.connecting
-            : connection.status === "failed"
-              ? connection.message
-              : strings.disconnected}
-        </span>
-        {connection.status === "disconnected" && (
-          <button type="button" className="link" onClick={() => post({ type: "connect" })}>
-            {strings.connect}
-          </button>
-        )}
-        {connection.status === "failed" && (
-          <button type="button" className="link" onClick={() => post({ type: "showLog" })}>
-            {strings.showLog}
-          </button>
-        )}
-      </div>
-    );
-
-  if (state.view === "noProject") {
-    return (
-      <>
-        {banner}
-        <Panel title={strings.noProjectTitle} body={strings.noProjectBody} />
-      </>
-    );
-  }
+      )}
+      {connection.status === "failed" && (
+        <button type="button" className="link" onClick={() => post({ type: "showLog" })}>
+          {strings.showLog}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <>
       {banner}
-      <Chat
-        state={state}
-        strings={strings}
-        locale={locale}
-        logoUri={logoUri}
-        connected={connection.status === "connected"}
-        sentCount={sentCount}
-      />
+      {state.view === "home" ? (
+        <Home
+          user={state.user}
+          teams={state.teams}
+          logoUri={logoUri}
+          connected={connected}
+          strings={strings}
+        />
+      ) : (
+        <Chat
+          state={state}
+          strings={strings}
+          locale={locale}
+          logoUri={logoUri}
+          connected={connected}
+          sentCount={sentCount}
+        />
+      )}
     </>
-  );
-}
-
-function Panel(props: { title: string; body: string; children?: React.ReactNode }) {
-  return (
-    <section className="panel" aria-live="polite">
-      <h2>{props.title}</h2>
-      <p>{props.body}</p>
-      {props.children && <div className="actions">{props.children}</div>}
-    </section>
   );
 }
 

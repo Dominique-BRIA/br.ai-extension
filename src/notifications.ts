@@ -32,13 +32,13 @@ export function watchMentions(
     if (!settings.get<boolean>("notifyMentions", true)) return;
 
     const found = store.project(message.projectId);
-    const author = message.author.kind === "member" ? message.author.displayName : "br.ia";
-    const project = found?.project.name ?? "br.ia";
+    const author = message.author.kind === "member" ? message.author.displayName : "<br>.ia";
+    const project = found?.project.name ?? "<br>.ia";
     const open = vscode.l10n.t("Open");
     const never = vscode.l10n.t("Don't show again");
     const choice = await vscode.window.showInformationMessage(
       answersMe
-        ? vscode.l10n.t("br.ia answered you in {0}.", project)
+        ? vscode.l10n.t("<br>.ia answered you in {0}.", project)
         : vscode.l10n.t("{0} mentioned you in {1}.", author, project),
       open,
       never,

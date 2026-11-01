@@ -66,6 +66,16 @@ export function formatSize(bytes: number, locale: string): string {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
 }
 
+/** Deux initiales d'un nom : « Dominique Bria » → « DB ». */
+export function initials(name: string): string {
+  const letters = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("");
+  return letters.slice(0, 2).toUpperCase() || "?";
+}
+
 /** Durée relative : « il y a 3 heures », « hier »… */
 export function formatRelative(iso: string, locale: string, now = Date.now()): string {
   const seconds = Math.round((new Date(iso).getTime() - now) / 1000);

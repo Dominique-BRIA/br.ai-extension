@@ -22,7 +22,7 @@ export type FailureReason = "protocol_mismatch" | "unauthenticated";
 const HEARTBEAT_MS = 30_000;
 
 /**
- * Connexion permanente au serveur br.ia, avec reconnexion automatique.
+ * Connexion permanente au serveur <br>.ia, avec reconnexion automatique.
  */
 export class Connection implements vscode.Disposable {
   readonly #onDidChangeState = new vscode.EventEmitter<ConnectionState>();

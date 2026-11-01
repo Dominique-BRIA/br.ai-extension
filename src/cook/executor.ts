@@ -205,6 +205,14 @@ export class CookExecutor implements vscode.Disposable {
         "Mode Plan : le membre ne veut pas de modification. Décris ce que tu ferais, sans modifier.",
       );
     }
+    // Hors du projet, on n'écrit que dans un dossier qui existe déjà : un chemin inventé
+    // (un autre nom d'utilisateur, par exemple) ne doit pas créer de dossiers sur la machine.
+    const target = resolveInProject(root, path);
+    if (!target.inside && !(await stat(dirname(target.absolute)).catch(() => null))?.isDirectory()) {
+      return refused(
+        `Le dossier ${dirname(target.absolute)} n'existe pas sur cette machine. N'invente pas de chemin : pars des dossiers de la machine indiqués dans la commande, ou vérifie avec list_dir.`,
+      );
+    }
     const absolute = await this.#path(root, path, vscode.l10n.t("write a file"));
     if (!absolute) return refused("Écriture refusée par le membre (hors du dossier du projet).");
 

@@ -21,6 +21,17 @@ function mermaidCode(pre: Element | undefined): string | null {
 }
 
 /**
+ * Le nom « <br>.ia » ressemble à une balise HTML, que le rendu supprimerait : hors du code,
+ * on l'écrit avec des entités pour qu'il s'affiche tel quel.
+ */
+export function escapeBrand(text: string): string {
+  return text
+    .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/)
+    .map((part) => (part.startsWith("`") ? part : part.replaceAll("<br>.ia", "&lt;br&gt;.ia")))
+    .join("");
+}
+
+/**
  * Rendu Markdown d'un message : tableaux, listes de tâches, code coloré, diagrammes Mermaid.
  * Le HTML brut n'est jamais interprété.
  */
@@ -52,7 +63,7 @@ export const Markdown = memo(function Markdown({
           },
         }}
       >
-        {text}
+        {escapeBrand(text)}
       </ReactMarkdown>
     </div>
   );

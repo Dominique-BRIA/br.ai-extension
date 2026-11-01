@@ -1,5 +1,5 @@
 /*
- * Panneau de br.ia, d'après la maquette validée par Dominique.
+ * Panneau de <br>.ia, d'après la maquette validée par Dominique.
  * Couleur principale : le turquoise du logo ; l'orange du logo signale l'attente et les alertes.
  * Fonds, textes et bordures viennent du thème actif de VS Code, pour suivre les thèmes clairs et sombres.
  */
@@ -60,35 +60,15 @@ a:focus-visible {
   outline-offset: 1px;
 }
 
-button.primary {
-  width: 100%;
-  max-width: 300px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--radius-control);
-  color: var(--bria-on-accent);
-  background: var(--bria-accent-strong);
-}
-
-button.primary:hover {
-  filter: brightness(1.1);
-}
-
-button.secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: transparent;
-}
-
-button.secondary:hover {
-  background: var(--vscode-toolbar-hoverBackground);
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 button.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 0;
   border: none;
   color: var(--bria-accent);
@@ -147,28 +127,254 @@ button.link:hover {
   text-align: center;
 }
 
-/* États sans projet ouvert */
-
-.panel {
-  padding: 16px 20px;
-}
-
-.panel h2,
 .empty h2 {
   margin: 0 0 4px;
   font-size: 1em;
   font-weight: 600;
 }
 
-.panel p,
 .empty p,
 .empty-text {
   margin: 0;
   color: var(--muted);
 }
 
-.actions {
-  margin-top: 12px;
+/* Champs de saisie */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.field-label {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.field-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  background: var(--vscode-input-background);
+}
+
+.field-box:focus-within {
+  border-color: var(--bria-accent);
+}
+
+.field-box input,
+.code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  border: none;
+  outline: none;
+  color: var(--vscode-input-foreground);
+  background: none;
+  font: inherit;
+}
+
+.mono {
+  font-family: var(--vscode-editor-font-family);
+  letter-spacing: 0.04em;
+}
+
+.code-input {
+  padding: 12px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: var(--radius-control);
+  background: var(--vscode-input-background);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 1.8em;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+.code-input:focus {
+  border-color: var(--bria-accent);
+}
+
+/* Connexion */
+
+.auth {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 16px;
+  overflow-y: auto;
+}
+
+.auth-hero {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 16px;
+  background: #0a192c;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.auth-hero img {
+  display: block;
+  width: 100%;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+.auth-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.auth-progress span {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+}
+
+.auth-progress span.done {
+  background: var(--bria-accent);
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.auth-intro {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.auth-error,
+.auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 0.9em;
+}
+
+.auth-error {
+  color: var(--bria-danger);
+}
+
+.auth-notice {
+  color: var(--muted);
+}
+
+.auth-submit {
+  margin-top: 18px;
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.auth-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 380px;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.8em;
+}
+
+/* Accueil */
+
+.home-loading {
+  margin-top: 16px;
+}
+
+.onboarding {
+  margin-top: 16px;
+}
+
+.team-card {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.team-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  text-align: left;
+}
+
+.project-row:hover {
+  border-color: var(--bria-accent);
+}
+
+.project-row .codicon:first-child {
+  color: var(--bria-accent);
+}
+
+.project-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-row {
+  margin-top: 6px;
+}
+
+.home-actions {
+  margin: 4px 0 8px;
+}
+
+.inline-form {
+  margin-top: 8px;
+}
+
+.inline-form .button-row {
+  margin-top: 8px;
 }
 
 .banner {
@@ -1538,36 +1744,16 @@ button.link:hover {
   white-space: nowrap;
 }
 
-.composer-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.attach-button,
 .send-button {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: var(--radius-card);
-}
-
-.attach-button {
-  border: 1px solid var(--border);
-  color: var(--vscode-icon-foreground);
-  background: var(--card);
-}
-
-.attach-button:hover {
-  border-color: var(--bria-accent);
-}
-
-.send-button {
   border: none;
+  border-radius: var(--radius-control);
   color: var(--bria-on-accent);
   background: var(--bria-accent-strong);
 }
@@ -1581,13 +1767,8 @@ button.link:hover {
   cursor: default;
 }
 
+/* Le cadre de saisie : le texte en haut, la barre d'outils en bas (joindre, mode, envoyer). */
 .input-box {
-  position: relative;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 34px 0 12px;
   border: 1px solid var(--vscode-input-border, var(--border));
   border-radius: var(--radius-card);
   background: var(--vscode-input-background);
@@ -1595,6 +1776,96 @@ button.link:hover {
 
 .input-box:focus-within {
   border-color: var(--bria-accent);
+}
+
+.input-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 34px 0 12px;
+}
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 6px;
+}
+
+.mode-menu {
+  position: relative;
+}
+
+.mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  background: none;
+  font-size: 0.9em;
+}
+
+.mode-button:hover,
+.mode-button[aria-expanded="true"] {
+  color: var(--vscode-foreground);
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.mode-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 10;
+  width: min(300px, calc(100vw - 40px));
+  padding: 6px;
+  border: 1px solid var(--vscode-widget-border, var(--border));
+  border-radius: var(--radius-card);
+  background: var(--vscode-editorWidget-background, var(--card));
+  box-shadow: 0 6px 20px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+}
+
+.mode-popover-title {
+  padding: 4px 8px 6px;
+  color: var(--muted);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  text-align: left;
+}
+
+.mode-option:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.mode-option.active > .codicon:first-child {
+  color: var(--bria-accent);
+}
+
+.mode-option > .codicon {
+  margin-top: 2px;
+}
+
+.mode-option-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.mode-option-name {
+  font-weight: 600;
 }
 
 .composer textarea {
@@ -1660,6 +1931,65 @@ button.link:hover {
 .mentions button:hover {
   color: var(--vscode-editorSuggestWidget-selectedForeground);
   background: var(--vscode-editorSuggestWidget-selectedBackground);
+}
+
+/* Clé d'invitation */
+
+.invite-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--bria-accent) 55%, var(--border));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--bria-accent) 5%, var(--card));
+}
+
+.invite-card .meta {
+  margin: 6px 0 0;
+}
+
+.invite-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bria-accent);
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.invite-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.invite-code code {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  background: var(--vscode-textCodeBlock-background, var(--surface));
+  font-family: var(--vscode-editor-font-family);
+  font-size: 1.15em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite-card .ghost-button,
+.invite-card .primary-button {
+  margin-top: 10px;
+}
+
+.ghost-button.danger {
+  color: var(--bria-danger);
+}
+
+.leave {
+  margin-top: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

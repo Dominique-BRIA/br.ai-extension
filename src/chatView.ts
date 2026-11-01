@@ -1,5 +1,15 @@
 import { randomBytes } from "node:crypto";
-import type { ListMessagesResponse, MemoryType, Message } from "@br-ia/protocol";
+import type {
+  CreateInvitationResponse,
+  CurrentInvitationResponse,
+  ListMessagesResponse,
+  MemoryType,
+  Message,
+  Project,
+  RequestCodeResponse,
+  Team,
+  VerifyCodeResponse,
+} from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
 import { openAttachment, pickAndUpload } from "./attachments";
@@ -10,7 +20,15 @@ import type { OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
 import type { MemoryStore } from "./memoryStore";
 import type { Session } from "./session";
-import type { ChatStrings, ChatViewState, FromWebview, ToWebview, WebviewCommand } from "./webviewMessages";
+import type {
+  ChatStrings,
+  ChatViewState,
+  FromWebview,
+  HomeForm,
+  TeamInvitation,
+  ToWebview,
+  WebviewCommand,
+} from "./webviewMessages";
 import type { WorkspaceStore } from "./workspaceStore";
 
 const OPEN_PROJECT_KEY = "bria.openProjectId";
@@ -24,11 +42,14 @@ export interface ChatSources {
   orders: OrdersStore;
   folders: ProjectFolders;
   checkpoints: Checkpoints;
+  machineId: string;
 }
 
 /**
- * Le panneau de br.ia : le fil de discussion du projet ouvert, sa mémoire et ses commandes.
- * Il s'affiche dans sa vue (barre latérale de droite) et, sur demande, en grand dans un onglet.
+ * Le panneau de <br>.ia, où tout se passe : la connexion, l'accueil avec les équipes et
+ * leurs projets, puis le fil de discussion du projet ouvert, sa mémoire, ses commandes et
+ * son équipe. Il s'affiche dans sa vue (barre latérale de droite) et, sur demande, en
+ * grand dans un onglet.
  */
 export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = "bria.chat";
@@ -45,6 +66,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #hasMore = false;
   #loadingOlder = false;
   #revertable: string[] = [];
+  /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
+  readonly #invitations = new Map<string, TeamInvitation | null>();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -76,8 +99,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       session.onDidChange((user) => {
         if (!user) {
           this.#messages = [];
-          this.#post();
+          this.#invitations.clear();
         }
+        this.#post();
       }),
       // Après une reconnexion, des messages ont pu arriver : on recharge le fil.
       connection.onDidChangeState((state) => {
@@ -102,6 +126,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     if (projectId) await this.#loadLatest();
   }
 
+  /** Affiche le panneau : la connexion, l'accueil ou le projet ouvert. */
+  async show(): Promise<void> {
+    await this.#reveal();
+  }
+
   /** Fait défiler le fil jusqu'à un message chargé ; renvoie faux s'il n'est pas chargé. */
   async reveal(messageId: string): Promise<boolean> {
     if (!this.#messages.some((message) => message.id === messageId)) return false;
@@ -121,7 +150,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       this.#panel.reveal();
       return;
     }
-    const panel = vscode.window.createWebviewPanel("bria.chatPanel", "br.ia", vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel("bria.chatPanel", "<br>.ia", vscode.ViewColumn.Active, {
       enableScripts: true,
       localResourceRoots: this.#roots(),
       retainContextWhenHidden: true,
@@ -175,8 +204,58 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         this.#post();
         if (this.#projectId && this.#messages.length === 0) await this.#loadLatest();
         return;
-      case "signIn":
-        await vscode.commands.executeCommand("bria.signIn");
+      case "requestCode":
+        await this.#requestCode(message.email, message.invitationCode);
+        return;
+      case "verifyCode":
+        await this.#verifyCode(message.email, message.code, message.displayName);
+        return;
+      case "openProject":
+        await this.open(message.projectId ?? undefined);
+        return;
+      case "createTeam":
+        await this.#form("createTeam", async () => {
+          await this.#sources.api.post<{ team: Team }>("/teams", { name: message.name });
+        });
+        return;
+      case "joinTeam":
+        await this.#form("joinTeam", async () => {
+          await this.#sources.api.post<{ team: Team }>("/invitations/accept", { code: message.code });
+        });
+        return;
+      case "createProject": {
+        let created: Project | undefined;
+        await this.#form("createProject", async () => {
+          ({ project: created } = await this.#sources.api.post<{ project: Project }>(
+            `/teams/${message.teamId}/projects`,
+            { name: message.name },
+          ));
+        });
+        if (created) await this.open(created.id);
+        return;
+      }
+      case "invitation":
+        await this.#invitation(message.action);
+        return;
+      case "copy":
+        await vscode.env.clipboard.writeText(message.text);
+        return;
+      case "memberAction": {
+        const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+        const member = found?.team.members.find((candidate) => candidate.userId === message.userId);
+        if (!found || !member) return;
+        // Les deux actions demandent confirmation dans une fenêtre de VS Code.
+        await vscode.commands.executeCommand(
+          message.action === "remove" ? "bria.removeMember" : "bria.transferChef",
+          { kind: "member", team: found.team, member },
+        );
+        return;
+      }
+      case "setPermissionMode":
+        // Le réglage vaut pour toute la machine ; le panneau se met à jour quand il change.
+        await vscode.workspace
+          .getConfiguration("bria")
+          .update("permissionMode", message.mode, vscode.ConfigurationTarget.Global);
         return;
       case "connect":
         await vscode.commands.executeCommand("bria.connect");
@@ -283,10 +362,89 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           { label: `$(person-add) ${t("Invite to the team")}`, command: "bria.invite" },
           { label: `$(account) ${t("Edit my profile")}`, command: "bria.editProfile" },
         ];
-        const picked = await vscode.window.showQuickPick(actions, { title: "br.ia" });
+        const picked = await vscode.window.showQuickPick(actions, { title: "<br>.ia" });
         if (picked) await vscode.commands.executeCommand(picked.command);
         return;
       }
+      case "leaveTeam":
+        await vscode.commands.executeCommand("bria.leaveTeam", this.#teamNode());
+        return;
+      case "editProfile":
+        await vscode.commands.executeCommand("bria.editProfile");
+        return;
+      case "manageMachines":
+        await vscode.commands.executeCommand("bria.manageMachines");
+        return;
+      case "signOut":
+        await vscode.commands.executeCommand("bria.signOut");
+        return;
+    }
+  }
+
+  /** Première étape de connexion : le serveur envoie un code par e-mail. */
+  async #requestCode(email: string, invitationCode: string | undefined): Promise<void> {
+    try {
+      const { newAccount } = await this.#sources.api.post<RequestCodeResponse>("/auth/code", {
+        email,
+        invitationCode,
+      });
+      this.#postRaw({ type: "authResult", step: "requestCode", ok: true, newAccount });
+    } catch (error) {
+      this.#postRaw({ type: "authResult", step: "requestCode", ok: false, ...errorOf(error) });
+    }
+  }
+
+  /** Seconde étape : le code reçu ouvre une session sur cette machine. */
+  async #verifyCode(email: string, code: string, displayName: string | undefined): Promise<void> {
+    try {
+      const result = await this.#sources.api.post<VerifyCodeResponse>("/auth/verify", {
+        email,
+        code,
+        machineId: this.#sources.machineId,
+        displayName,
+      });
+      this.#postRaw({ type: "authResult", step: "verifyCode", ok: true });
+      await this.#sources.session.signedIn(result.token, result.user);
+    } catch (error) {
+      this.#postRaw({ type: "authResult", step: "verifyCode", ok: false, ...errorOf(error) });
+    }
+  }
+
+  /** Formulaire de l'accueil : appel au serveur, puis espace de travail rechargé. */
+  async #form(form: HomeForm, run: () => Promise<void>): Promise<void> {
+    try {
+      await run();
+      await this.#sources.store.refresh();
+      this.#postRaw({ type: "formResult", form, ok: true });
+    } catch (error) {
+      const message =
+        error instanceof ApiRequestError && error.code === "network"
+          ? vscode.l10n.t("The <br>.ia server cannot be reached.")
+          : (error as Error).message;
+      this.#postRaw({ type: "formResult", form, ok: false, error: message });
+    }
+  }
+
+  /** Clé d'invitation de l'équipe du projet ouvert : la relire, ou en créer une nouvelle. */
+  async #invitation(action: "load" | "create"): Promise<void> {
+    const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+    if (found?.team.myRole !== "chef") return;
+    const teamId = found.team.id;
+    try {
+      if (action === "load") {
+        const { invitation } = await this.#sources.api.get<CurrentInvitationResponse>(
+          `/teams/${teamId}/invitations/current`,
+        );
+        this.#invitations.set(teamId, invitation);
+      } else {
+        const created = await this.#sources.api.post<CreateInvitationResponse>(
+          `/teams/${teamId}/invitations`,
+        );
+        this.#invitations.set(teamId, created);
+      }
+      this.#post();
+    } catch (error) {
+      this.#reportError(error);
     }
   }
 
@@ -407,12 +565,29 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const user = session.user;
     if (!session.token || !user) return { view: "signedOut" };
     const found = this.#projectId ? store.project(this.#projectId) : undefined;
-    if (!found) return { view: "noProject" };
+    if (!found) {
+      return {
+        view: "home",
+        user: { displayName: user.displayName, email: user.email },
+        teams:
+          store.current?.teams.map((team) => ({
+            id: team.id,
+            name: team.name,
+            isChef: team.myRole === "chef",
+            memberCount: team.members.length,
+            onlineCount: team.members.filter((member) => member.online).length,
+            projects: team.projects.map(({ id, name }) => ({ id, name })),
+          })) ?? null,
+      };
+    }
     return {
       view: "project",
       projectId: found.project.id,
       projectName: found.project.name,
+      teamId: found.team.id,
       teamName: found.team.name,
+      chefName: found.team.members.find((member) => member.role === "chef")?.displayName ?? "",
+      invitation: this.#invitations.get(found.team.id),
       myUserId: user.id,
       isChef: found.team.myRole === "chef",
       members: found.team.members.map(({ userId, displayName, role, online, lastSeenAt }) => ({
@@ -450,6 +625,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   #post(): void {
     const webviews = [this.#view?.webview, this.#panel?.webview].filter((webview) => webview !== undefined);
+    const media = (file: string) => vscode.Uri.joinPath(this.context.extensionUri, "media", file);
     for (const webview of webviews) {
       const message: ToWebview = {
         type: "state",
@@ -457,9 +633,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         connection: this.#sources.connection.state,
         strings: chatStrings(),
         locale: vscode.env.language,
-        logoUri: webview
-          .asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "logo.png"))
-          .toString(),
+        logoUri: webview.asWebviewUri(media("logo.png")).toString(),
+        wordmarkUri: webview.asWebviewUri(media("logo-complet.png")).toString(),
       };
       void webview.postMessage(message);
     }
@@ -471,6 +646,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   #reportError(error: unknown): void {
+    if (error instanceof ApiRequestError && error.code === "network") {
+      void vscode.window.showErrorMessage(vscode.l10n.t("The <br>.ia server cannot be reached."));
+      return;
+    }
     const text = error instanceof ApiRequestError ? error.message : String(error);
     void vscode.window.showErrorMessage(text);
   }
@@ -514,14 +693,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 }
 
+/** Erreur transmise à la webview : son code choisit le texte, sinon le message du serveur s'affiche. */
+function errorOf(error: unknown): { error: string; message: string } {
+  return error instanceof ApiRequestError
+    ? { error: error.code, message: error.message }
+    : { error: "unknown", message: String(error) };
+}
+
 function chatStrings(): ChatStrings {
   const t = vscode.l10n.t;
   return {
-    signedOutTitle: t("Not signed in"),
-    signedOutBody: t("Sign in to join your team's chat."),
-    signIn: t("Sign in"),
-    noProjectTitle: t("No project open"),
-    noProjectBody: t("Choose a project in the Teams view, or create one."),
     emptyChatTitle: t("No messages yet"),
     emptyChatBody: t("Write the first message. Type @ to mention a teammate."),
     connecting: t("Reconnecting to the server… Messages will arrive once connected."),
@@ -533,7 +714,7 @@ function chatStrings(): ChatStrings {
     reply: t("Reply"),
     replyingTo: t("Replying to {0}"),
     cancelReply: t("Cancel reply"),
-    composerPlaceholder: t("Message to br.ia…"),
+    composerPlaceholder: t("Message to <br>.ia…"),
     composerHint: t("Enter to send, Shift+Enter for a new line"),
     send: t("Send"),
     today: t("Today"),
@@ -581,6 +762,13 @@ function chatStrings(): ChatStrings {
     ),
     mode: t("Mode: {0}"),
     modes: { manual: t("Manual"), autoEdit: t("Auto edit"), auto: t("Auto"), plan: t("Plan") },
+    modeDetails: {
+      manual: t("You approve each change (side-by-side view) and each command."),
+      autoEdit: t("Changes are applied directly; you approve each command."),
+      auto: t("Changes and commands run directly, except risky commands."),
+      plan: t("The cook reads and proposes, but changes nothing on this machine."),
+    },
+    modeTitle: t("What the cook may do on this machine"),
     changeMode: t("Change"),
     memoryGroups: {
       decision: t("Decisions"),
@@ -649,5 +837,66 @@ function chatStrings(): ChatStrings {
     neverSeen: t("Never connected"),
     invite: t("Invite"),
     lendMachine: t("Lend my machine"),
+    authWelcome: t("Welcome"),
+    authIntro: t("Sign in with your email address. We send you a 6-digit code: no password to remember."),
+    emailLabel: t("Email address"),
+    emailPlaceholder: t("name@example.org"),
+    getCode: t("Receive a code"),
+    invitationTitle: t("Invitation code"),
+    invitationIntro: t(
+      "The beta is private. Enter the beta code you received, or the key of the team you are joining.",
+    ),
+    invitationLabel: t("Beta code or team key"),
+    continue: t("Continue"),
+    nameTitle: t("Your name"),
+    nameIntro: t("The name your team will see in the chat."),
+    nameLabel: t("Display name"),
+    codeTitle: t("Check your email"),
+    codeIntro: t("Enter the 6-digit code sent to {0}."),
+    codeLabel: t("Sign-in code"),
+    signInButton: t("Sign in"),
+    resendCode: t("Resend the code"),
+    codeResent: t("A new code has been sent."),
+    changeEmail: t("Use another address"),
+    back: t("Back"),
+    invalidEmail: t("Enter a valid email address."),
+    codeInvalid: t("Incorrect or expired code. Try again."),
+    invitationInvalid: t("This invitation code is not valid."),
+    codeAlreadySent: t("A code was sent less than a minute ago: use it, or wait before asking for another."),
+    serverUnreachable: t("The <br>.ia server cannot be reached."),
+    authFooter: t("Your session stays on this machine, in the VS Code secret storage."),
+    homeGreeting: t("Hello {0}"),
+    homeIntro: t("Choose a project to open its chat."),
+    yourTeams: t("Your teams"),
+    noTeamsTitle: t("Start with a team"),
+    noTeamsBody: t("Create your team, or join one with the key given by its lead."),
+    createTeam: t("Create a team"),
+    teamNamePlaceholder: t("Team name"),
+    joinTeam: t("Join a team"),
+    teamKeyPlaceholder: "EQP-XXXX-XXXX",
+    join: t("Join"),
+    create: t("Create"),
+    cancel: t("Cancel"),
+    newProject: t("New project"),
+    projectNamePlaceholder: t("Project name"),
+    noProjects: t("No project yet."),
+    projectCount: t("{0} project(s)"),
+    account: t("Account"),
+    editProfile: t("Edit my profile"),
+    machines: t("My machines"),
+    signOut: t("Sign out"),
+    allProjects: t("All projects"),
+    inviteKeyTitle: t("Invitation key"),
+    inviteKeyIntro: t("Share this key: it lets a teammate create an account or join {0}."),
+    inviteKeyNone: t("No valid key. Generate one to invite teammates."),
+    inviteKeyMember: t("Only the team lead can invite. Ask {0} for a key."),
+    generateKey: t("Generate a key"),
+    newKey: t("New key"),
+    copy: t("Copy"),
+    copied: t("Copied"),
+    validUntil: t("Valid until {0}"),
+    leaveTeam: t("Leave the team"),
+    removeMember: t("Remove from the team"),
+    makeChef: t("Make team lead"),
   };
 }

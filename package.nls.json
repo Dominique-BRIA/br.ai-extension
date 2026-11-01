@@ -2,7 +2,7 @@
   "description": "Team chat where AI takes notes, settles disagreements and builds on your machines.",
   "view.teams": "Teams",
   "view.chat": "Chat",
-  "welcome.signedOut": "Sign in to join your team's chat.\n[Sign in](command:bria.signIn)\nbr.ia is in private beta: you need an invitation code to create an account.",
+  "welcome.signedOut": "Sign in to join your team's chat.\n[Sign in](command:bria.signIn)\nThe beta is private: you need an invitation code to create an account.",
   "welcome.noTeams": "You are not part of a team yet.\n[Create a team](command:bria.createTeam)\n[Join a team](command:bria.joinTeam)\nTo join a team, ask its lead for an invitation code.",
   "command.signIn": "Sign In",
   "command.signOut": "Sign Out",
@@ -20,7 +20,7 @@
   "command.archiveProject": "Archive Project",
   "command.removeMember": "Remove from Team",
   "command.transferChef": "Make Team Lead",
-  "config.serverUrl": "Address of the br.ia server.",
+  "config.serverUrl": "Address of the <br>.ia server.",
   "config.notifyMentions": "Show a notification when a teammate mentions you.",
   "command.editProfile": "Edit Profile",
   "command.manageMachines": "Manage Signed-In Machines",
@@ -54,7 +54,7 @@
   "config.permissionMode.plan": "The cook reads and proposes, but changes nothing.",
   "config.lendMachine": "Let the cook work on this machine for your teammates' orders when they are not connected.",
   "command.showCookTerminal": "Show What the Cook Runs",
-  "command.openChatInEditor": "Open br.ia",
+  "command.openChatInEditor": "Open <br>.ia",
   "config.showCookTerminal": "Open the cook's terminal automatically when it runs a command on this machine.",
   "command.memory.add": "New Note"
 }

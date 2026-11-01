@@ -1,15 +1,19 @@
 import type { Order } from "@br-ia/protocol";
-import type { ChatMember, ChatStrings } from "../src/webviewMessages";
-import { formatRelative } from "./format";
+import { useEffect, useState } from "react";
+import type { ChatMember, ChatStrings, TeamInvitation } from "../src/webviewMessages";
+import { formatRelative, initials } from "./format";
 import { activeOrder, orderCode } from "./Orders";
 import { post } from "./vscodeApi";
 
 interface Props {
   teamName: string;
   projectName: string;
+  chefName: string;
   members: ChatMember[];
   myUserId: string;
   isChef: boolean;
+  /** Clé d'invitation en cours (chef) ; `undefined` tant qu'elle n'est pas chargée. */
+  invitation: TeamInvitation | null | undefined;
   connected: boolean;
   orders: Order[];
   folderLinked: boolean;
@@ -17,16 +21,7 @@ interface Props {
   locale: string;
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-/** Onglet Équipe : les membres, les agents IA et les actions de l'équipe. */
+/** Onglet Équipe : la clé d'invitation, les membres, les agents IA et les actions de l'équipe. */
 export function TeamTab(props: Props) {
   const { strings, locale } = props;
   const online = props.members.filter((member) => member.online).length;
@@ -47,6 +42,15 @@ export function TeamTab(props: Props) {
           <span className="codicon codicon-organization" aria-hidden="true" />
         </span>
       </article>
+
+      <InvitationCard
+        isChef={props.isChef}
+        invitation={props.invitation}
+        teamName={props.teamName}
+        chefName={props.chefName}
+        strings={strings}
+        locale={locale}
+      />
 
       <div className="section-head small">
         <h3 className="subtitle">
@@ -85,6 +89,28 @@ export function TeamTab(props: Props) {
                 </>
               )}
             </span>
+            {props.isChef && !me && (
+              <span className="memory-actions">
+                <button
+                  type="button"
+                  className="icon-button"
+                  title={strings.makeChef}
+                  aria-label={`${strings.makeChef} : ${member.displayName}`}
+                  onClick={() => post({ type: "memberAction", userId: member.userId, action: "transfer" })}
+                >
+                  <span className="codicon codicon-star-empty" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title={strings.removeMember}
+                  aria-label={`${strings.removeMember} : ${member.displayName}`}
+                  onClick={() => post({ type: "memberAction", userId: member.userId, action: "remove" })}
+                >
+                  <span className="codicon codicon-close" aria-hidden="true" />
+                </button>
+              </span>
+            )}
           </article>
         );
       })}
@@ -100,7 +126,9 @@ export function TeamTab(props: Props) {
           <span className="codicon codicon-comment-discussion" aria-hidden="true" />
         </span>
         <div className="person-text">
-          <div className="person-name">br.ia · {strings.serveur}</div>
+          <div className="person-name">
+            {"<br>.ia"} · {strings.serveur}
+          </div>
           <div className="meta">{strings.serveurRole}</div>
         </div>
         <span className={`pill status ${props.connected ? "done" : "stopped"}`}>
@@ -113,7 +141,9 @@ export function TeamTab(props: Props) {
           <span className="codicon codicon-tools" aria-hidden="true" />
         </span>
         <div className="person-text">
-          <div className="person-name">br.ia · {strings.cuisinier}</div>
+          <div className="person-name">
+            {"<br>.ia"} · {strings.cuisinier}
+          </div>
           <div className="meta">{strings.cuisinierRole}</div>
         </div>
         <span
@@ -125,16 +155,6 @@ export function TeamTab(props: Props) {
       </article>
 
       <div className="button-row">
-        {props.isChef && (
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => post({ type: "command", command: "invite" })}
-          >
-            <span className="codicon codicon-person-add" aria-hidden="true" />
-            {strings.invite}
-          </button>
-        )}
         {!props.folderLinked && (
           <button
             type="button"
@@ -154,6 +174,98 @@ export function TeamTab(props: Props) {
           {strings.lendMachine}
         </button>
       </div>
+      {!props.isChef && (
+        <button
+          type="button"
+          className="ghost-button danger leave"
+          onClick={() => post({ type: "command", command: "leaveTeam" })}
+        >
+          <span className="codicon codicon-sign-out" aria-hidden="true" />
+          {strings.leaveTeam}
+        </button>
+      )}
     </div>
+  );
+}
+
+interface CardProps {
+  isChef: boolean;
+  invitation: TeamInvitation | null | undefined;
+  teamName: string;
+  chefName: string;
+  strings: ChatStrings;
+  locale: string;
+}
+
+/** La clé à transmettre pour inviter : affichée et copiable par le chef, demandée au chef par les autres. */
+function InvitationCard({ isChef, invitation, teamName, chefName, strings, locale }: CardProps) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isChef && invitation === undefined) post({ type: "invitation", action: "load" });
+  }, [isChef, invitation]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  if (!isChef) {
+    return (
+      <article className="invite-card">
+        <div className="invite-head">
+          <span className="codicon codicon-key" aria-hidden="true" />
+          {strings.inviteKeyTitle}
+        </div>
+        <p className="meta">{strings.inviteKeyMember.replace("{0}", chefName)}</p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="invite-card">
+      <div className="invite-head">
+        <span className="codicon codicon-key" aria-hidden="true" />
+        {strings.inviteKeyTitle}
+      </div>
+      {invitation === undefined && <p className="meta">{strings.loading}</p>}
+      {invitation === null && <p className="meta">{strings.inviteKeyNone}</p>}
+      {invitation && (
+        <>
+          <p className="meta">{strings.inviteKeyIntro.replace("{0}", teamName)}</p>
+          <div className="invite-code">
+            <code>{invitation.code}</code>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                post({ type: "copy", text: invitation.code });
+                setCopied(true);
+              }}
+            >
+              <span className={`codicon codicon-${copied ? "check" : "copy"}`} aria-hidden="true" />
+              {copied ? strings.copied : strings.copy}
+            </button>
+          </div>
+          <p className="meta">
+            {strings.validUntil.replace(
+              "{0}",
+              new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(invitation.expiresAt)),
+            )}
+          </p>
+        </>
+      )}
+      {invitation !== undefined && (
+        <button
+          type="button"
+          className={invitation ? "ghost-button" : "primary-button wide"}
+          onClick={() => post({ type: "invitation", action: "create" })}
+        >
+          <span className="codicon codicon-person-add" aria-hidden="true" />
+          {invitation ? strings.newKey : strings.generateKey}
+        </button>
+      )}
+    </article>
   );
 }
