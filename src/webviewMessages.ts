@@ -239,6 +239,12 @@ export interface ChatStrings {
   catchUpCount: string;
   catchUpLoading: string;
   close: string;
+  renameProject: string;
+  archiveProject: string;
+  feedbackTitle: string;
+  feedbackPlaceholder: string;
+  feedbackSend: string;
+  feedbackThanks: string;
   /** Changement d'adresse */
   editEmail: string;
   newEmailLabel: string;
@@ -284,7 +290,14 @@ export interface TeamInvitation {
 }
 
 /** Formulaires de l'accueil, dont la webview attend le résultat. */
-export type HomeForm = "createTeam" | "joinTeam" | "createProject" | "createSecret" | "updateSecret";
+export type HomeForm =
+  | "createTeam"
+  | "joinTeam"
+  | "createProject"
+  | "renameProject"
+  | "feedback"
+  | "createSecret"
+  | "updateSecret";
 
 export interface ChatMember {
   userId: string;
@@ -419,6 +432,9 @@ export type FromWebview =
   | { type: "createTeam"; name: string }
   | { type: "joinTeam"; code: string }
   | { type: "createProject"; teamId: string; name: string }
+  | { type: "renameProject"; projectId: string; name: string }
+  | { type: "archiveProject"; projectId: string }
+  | { type: "sendFeedback"; text: string }
   | { type: "invitation"; action: "load" | "create" }
   | { type: "copy"; text: string }
   | { type: "memberAction"; userId: string; action: "remove" | "transfer" }

@@ -295,7 +295,6 @@
   "This machine": "Cette machine",
   "The cook may work here on your teammates' orders.": "Le cuisinier peut travailler ici pour les commandes de vos coéquipiers.",
   "Show the cook terminal when it starts working": "Afficher le terminal du cuisinier quand il commence",
-  "Notify me when I am mentioned": "Me prévenir quand on me mentionne",
   "My local memory": "Ma mémoire locale",
   "Work preferences noted in the chat, kept on this machine and backed up on the server. The cook follows them.": "Les préférences de travail relevées dans le chat, gardées sur cette machine et sauvegardées sur le serveur. Le cuisinier les respecte.",
   "Signed-in machines": "Machines connectées",
@@ -342,5 +341,14 @@
   "Enter the code sent to {0}.": "Saisissez le code envoyé à {0}.",
   "Confirm": "Confirmer",
   "Your address has been changed.": "Votre adresse a été modifiée.",
-  "This address is already used by another account.": "Cette adresse est déjà utilisée par un autre compte."
+  "This address is already used by another account.": "Cette adresse est déjà utilisée par un autre compte.",
+  "Rename the project": "Renommer le projet",
+  "Archive the project": "Archiver le projet",
+  "Send feedback": "Envoyer un retour",
+  "What works, what does not, what you would like…": "Ce qui marche, ce qui ne marche pas, ce que vous aimeriez…",
+  "Thank you, your feedback has been sent.": "Merci, votre retour a été envoyé.",
+  "Notify me of mentions and finished orders": "Me prévenir des mentions et des commandes terminées",
+  "Order {0} is done: {1}": "La commande n° {0} est terminée : {1}",
+  "Order {0} could not be completed: {1}": "La commande n° {0} n'a pas abouti : {1}",
+  "Order {0} was stopped: {1}": "La commande n° {0} a été arrêtée : {1}"
 }

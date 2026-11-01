@@ -17,7 +17,7 @@ import { CookTerminal } from "./cook/terminal";
 import { LocalMemory } from "./localMemory";
 import { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
-import { watchMentions } from "./notifications";
+import { watchFinishedOrders, watchMentions } from "./notifications";
 import { NotificationsStore } from "./notificationsStore";
 import { serverWsUrl } from "./server";
 import { Session } from "./session";
@@ -137,6 +137,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerTreeDataProvider("bria.teams", teams),
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chat),
     watchMentions(connection, session, store, chat),
+    watchFinishedOrders(orders, session, chat),
     ...registerCommands({
       api,
       session,

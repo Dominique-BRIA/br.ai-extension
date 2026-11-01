@@ -388,6 +388,26 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         if (created) await this.open(created.id);
         return;
       }
+      case "renameProject":
+        await this.#form("renameProject", async () => {
+          await this.#sources.api.patch(`/projects/${message.projectId}`, { name: message.name });
+        });
+        return;
+      case "archiveProject": {
+        const found = this.#sources.store.project(message.projectId);
+        // L'archivage demande confirmation dans une fenêtre de VS Code.
+        if (found) await vscode.commands.executeCommand("bria.archiveProject", { kind: "project", ...found });
+        return;
+      }
+      case "sendFeedback":
+        await this.#form("feedback", async () => {
+          await this.#sources.api.post("/feedback", {
+            text: message.text,
+            projectId: this.#projectId,
+            extensionVersion: String(this.context.extension.packageJSON.version),
+          });
+        });
+        return;
       case "invitation":
         await this.#invitation(message.action);
         return;
@@ -1214,7 +1234,7 @@ function chatStrings(): ChatStrings {
     machineSection: t("This machine"),
     lendMachineDetail: t("The cook may work here on your teammates' orders."),
     showTerminalLabel: t("Show the cook terminal when it starts working"),
-    notifyLabel: t("Notify me when I am mentioned"),
+    notifyLabel: t("Notify me of mentions and finished orders"),
     localMemorySection: t("My local memory"),
     localMemoryDetail: t(
       "Work preferences noted in the chat, kept on this machine and backed up on the server. The cook follows them.",
@@ -1230,6 +1250,12 @@ function chatStrings(): ChatStrings {
     catchUpLoading: t("<br>.ia is summarizing what happened…"),
     close: t("Close"),
     editEmail: t("Change"),
+    renameProject: t("Rename the project"),
+    archiveProject: t("Archive the project"),
+    feedbackTitle: t("Send feedback"),
+    feedbackPlaceholder: t("What works, what does not, what you would like…"),
+    feedbackSend: t("Send"),
+    feedbackThanks: t("Thank you, your feedback has been sent."),
     newEmailLabel: t("New email address"),
     sendCode: t("Send a code"),
     emailCodeIntro: t("Enter the code sent to {0}."),

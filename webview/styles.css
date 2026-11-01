@@ -355,6 +355,36 @@ button.link:hover {
   border-color: var(--bria-accent);
 }
 
+.project-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: none;
+  text-align: left;
+}
+
+.feedback-text {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: var(--radius-control);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font: inherit;
+  resize: vertical;
+}
+
+.feedback-text:focus {
+  border-color: var(--bria-accent);
+  outline: none;
+}
+
 .project-row .codicon:first-child {
   color: var(--bria-accent);
 }

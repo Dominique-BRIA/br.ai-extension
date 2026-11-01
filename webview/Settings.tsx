@@ -195,6 +195,10 @@ export function Settings({ settings, strings, locale, onBack }: Props) {
           ))}
         </Section>
 
+        <Section icon="feedback" title={strings.feedbackTitle}>
+          <FeedbackForm strings={strings} />
+        </Section>
+
         <Section icon="server" title={strings.serverSection}>
           <form className="setting-form" onSubmit={saveServer}>
             <label className="field">
@@ -380,6 +384,71 @@ function EmailChange({ email, strings }: { email: string; strings: ChatStrings }
         <button type="submit" className="primary-button" disabled={busy}>
           {busy && <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />}
           {step === "email" ? strings.sendCode : strings.confirm}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** Un retour de testeur : il arrive dans le tableau de bord d'administration. */
+function FeedbackForm({ strings }: { strings: ChatStrings }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      const message = event.data;
+      if (message.type !== "formResult" || message.form !== "feedback") return;
+      setBusy(false);
+      if (message.ok) {
+        setText("");
+        setSent(true);
+      } else {
+        setError(message.error ?? null);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    setSent(false);
+    setError(null);
+    post({ type: "sendFeedback", text: text.trim() });
+  };
+
+  return (
+    <form className="setting-form" onSubmit={submit}>
+      <textarea
+        className="feedback-text"
+        rows={4}
+        maxLength={5000}
+        placeholder={strings.feedbackPlaceholder}
+        aria-label={strings.feedbackTitle}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+      />
+      {error && (
+        <p className="auth-error" role="alert">
+          <span className="codicon codicon-error" aria-hidden="true" />
+          {error}
+        </p>
+      )}
+      <div className="setting-actions">
+        {sent && (
+          <span className="saved" role="status">
+            <span className="codicon codicon-check" aria-hidden="true" />
+            {strings.feedbackThanks}
+          </span>
+        )}
+        <button type="submit" className="primary-button" disabled={busy || !text.trim()}>
+          {busy && <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />}
+          {strings.feedbackSend}
         </button>
       </div>
     </form>

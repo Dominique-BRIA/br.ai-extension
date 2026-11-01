@@ -21,7 +21,7 @@
   "command.removeMember": "Retirer de l'équipe",
   "command.transferChef": "Nommer chef d'équipe",
   "config.serverUrl": "Adresse du serveur <br>.ia.",
-  "config.notifyMentions": "Afficher une notification quand un membre vous mentionne.",
+  "config.notifyMentions": "Afficher une notification quand un membre vous mentionne ou quand une de vos commandes se termine.",
   "command.editProfile": "Modifier mon profil",
   "command.manageMachines": "Gérer mes machines connectées",
   "command.deleteAccount": "Supprimer mon compte",

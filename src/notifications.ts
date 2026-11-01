@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { ChatViewProvider } from "./chatView";
 import type { Connection } from "./connection";
+import type { OrdersStore } from "./cook/orders";
 import type { Session } from "./session";
 import type { WorkspaceStore } from "./workspaceStore";
 
@@ -45,5 +46,34 @@ export function watchMentions(
     );
     if (choice === open) await chat.open(message.projectId, true);
     if (choice === never) await settings.update("notifyMentions", false, vscode.ConfigurationTarget.Global);
+  });
+}
+
+/**
+ * Prévient le demandeur quand sa commande se termine, si le fil n'est pas déjà sous ses yeux.
+ * Le même réglage que pour les mentions permet de couper ces notifications.
+ */
+export function watchFinishedOrders(
+  orders: OrdersStore,
+  session: Session,
+  chat: ChatViewProvider,
+): vscode.Disposable {
+  return orders.onDidFinish(async (order) => {
+    const me = session.user?.id;
+    if (!me || order.requestedBy.kind !== "member" || order.requestedBy.userId !== me) return;
+    if (chat.isShowing(order.projectId) && vscode.window.state.focused) return;
+    const settings = vscode.workspace.getConfiguration("bria");
+    if (!settings.get<boolean>("notifyMentions", true)) return;
+
+    const open = vscode.l10n.t("Open");
+    const text =
+      order.status === "done"
+        ? vscode.l10n.t("Order {0} is done: {1}", order.number, order.title)
+        : order.status === "failed"
+          ? vscode.l10n.t("Order {0} could not be completed: {1}", order.number, order.title)
+          : vscode.l10n.t("Order {0} was stopped: {1}", order.number, order.title);
+    const show =
+      order.status === "done" ? vscode.window.showInformationMessage : vscode.window.showWarningMessage;
+    if ((await show(text, open)) === open) await chat.open(order.projectId, true);
   });
 }

@@ -85,18 +85,53 @@ export function Home({ user, teams, logoUri, connected, unread, onScreen, string
             </div>
 
             {team.projects.length === 0 && <p className="empty-text">{strings.noProjects}</p>}
-            {team.projects.map((project) => (
-              <button
-                key={project.id}
-                type="button"
-                className="project-row"
-                onClick={() => post({ type: "openProject", projectId: project.id })}
-              >
-                <span className="codicon codicon-comment-discussion" aria-hidden="true" />
-                <span className="project-name">{project.name}</span>
-                <span className="codicon codicon-chevron-right" aria-hidden="true" />
-              </button>
-            ))}
+            {team.projects.map((project) =>
+              open === `rename:${project.id}` ? (
+                <InlineForm
+                  key={project.id}
+                  form="renameProject"
+                  icon="edit"
+                  placeholder={strings.projectNamePlaceholder}
+                  initial={project.name}
+                  submit={strings.save}
+                  strings={strings}
+                  onSubmit={(name) => post({ type: "renameProject", projectId: project.id, name })}
+                  onClose={() => setOpen(null)}
+                />
+              ) : (
+                <div key={project.id} className="project-row">
+                  <button
+                    type="button"
+                    className="project-open"
+                    onClick={() => post({ type: "openProject", projectId: project.id })}
+                  >
+                    <span className="codicon codicon-comment-discussion" aria-hidden="true" />
+                    <span className="project-name">{project.name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    title={strings.renameProject}
+                    aria-label={`${strings.renameProject} : ${project.name}`}
+                    onClick={() => setOpen(`rename:${project.id}`)}
+                  >
+                    <span className="codicon codicon-edit" aria-hidden="true" />
+                  </button>
+                  {team.isChef && (
+                    <button
+                      type="button"
+                      className="icon-button"
+                      title={strings.archiveProject}
+                      aria-label={`${strings.archiveProject} : ${project.name}`}
+                      onClick={() => post({ type: "archiveProject", projectId: project.id })}
+                    >
+                      <span className="codicon codicon-archive" aria-hidden="true" />
+                    </button>
+                  )}
+                  <span className="codicon codicon-chevron-right" aria-hidden="true" />
+                </div>
+              ),
+            )}
 
             {open === `project:${team.id}` ? (
               <InlineForm
@@ -201,6 +236,8 @@ interface FormProps {
   form: HomeForm;
   icon: string;
   placeholder: string;
+  /** Valeur de départ du champ (pour renommer). */
+  initial?: string;
   submit: string;
   mono?: boolean;
   strings: ChatStrings;
@@ -209,8 +246,18 @@ interface FormProps {
 }
 
 /** Petit formulaire en ligne : un champ, valider, annuler ; l'erreur du serveur s'affiche dessous. */
-function InlineForm({ form, icon, placeholder, submit, mono, strings, onSubmit, onClose }: FormProps) {
-  const [value, setValue] = useState("");
+function InlineForm({
+  form,
+  icon,
+  placeholder,
+  initial,
+  submit,
+  mono,
+  strings,
+  onSubmit,
+  onClose,
+}: FormProps) {
+  const [value, setValue] = useState(initial ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
