@@ -1,6 +1,6 @@
 import type { TeamUsage } from "@br-ia/protocol";
-import { useEffect } from "react";
-import type { ChatStrings } from "../src/webviewMessages";
+import { type FormEvent, useEffect, useState } from "react";
+import type { ChatStrings, ToWebview } from "../src/webviewMessages";
 import { post } from "./vscodeApi";
 
 interface Props {
@@ -72,6 +72,7 @@ export function UsageCard({ usage, isChef, strings, locale }: Props) {
           .replace("{1}", String(usage.plan.maxProjects))}{" "}
         · {strings.betaFree}
       </p>
+      {isChef && <PromoEntry strings={strings} />}
       {isChef && usage.byMember.length > 0 && (
         <>
           <div className="field-label usage-members-title">{strings.usageByMember}</div>
@@ -84,5 +85,69 @@ export function UsageCard({ usage, isChef, strings, locale }: Props) {
         </>
       )}
     </article>
+  );
+}
+
+/** Saisie d'un code promotionnel par le chef : formule offerte, crédits en bonus, essai… */
+function PromoEntry({ strings }: { strings: ChatStrings }) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      if (event.data.type !== "promoResult") return;
+      setBusy(false);
+      setResult({ ok: event.data.ok, message: event.data.message });
+      if (event.data.ok) {
+        setCode("");
+        setOpen(false);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!code.trim() || busy) return;
+    setBusy(true);
+    setResult(null);
+    post({ type: "redeemPromo", code: code.trim() });
+  };
+
+  return (
+    <div className="promo-entry">
+      {result && (
+        <p className={result.ok ? "saved" : "auth-error"} role="status">
+          <span className={`codicon codicon-${result.ok ? "check" : "error"}`} aria-hidden="true" />
+          {result.message}
+        </p>
+      )}
+      {open ? (
+        <form className="promo-form" onSubmit={submit}>
+          <span className="field-box">
+            <span className="codicon codicon-tag" aria-hidden="true" />
+            <input
+              className="mono"
+              placeholder={strings.promoPlaceholder}
+              aria-label={strings.enterCode}
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+            />
+          </span>
+          <button type="submit" className="primary-button" disabled={busy || !code.trim()}>
+            {busy && <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />}
+            {strings.apply}
+          </button>
+        </form>
+      ) : (
+        <button type="button" className="ghost-button" onClick={() => setOpen(true)}>
+          <span className="codicon codicon-tag" aria-hidden="true" />
+          {strings.enterCode}
+        </button>
+      )}
+    </div>
   );
 }

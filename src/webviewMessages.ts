@@ -263,6 +263,9 @@ export interface ChatStrings {
   planLimits: string;
   usageByMember: string;
   betaFree: string;
+  enterCode: string;
+  promoPlaceholder: string;
+  apply: string;
   /** Coffre de secrets */
   vaultTitle: string;
   vaultDisabled: string;
@@ -397,6 +400,8 @@ export type ToWebview =
     }
   /** Réponse à une étape du changement d'adresse ; `error` est le code d'erreur du serveur. */
   | { type: "emailResult"; step: "request" | "verify"; ok: boolean; error?: string; message?: string }
+  /** Réponse à la saisie d'un code : ce qu'il a changé, ou pourquoi il est refusé. */
+  | { type: "promoResult"; ok: boolean; message: string }
   /** Le journal du coffre du projet ouvert (chef). */
   | { type: "secretLog"; entries: SecretLogResponse["entries"] }
   /** Les machines connectées au compte, pour les réglages. */
@@ -462,6 +467,7 @@ export type FromWebview =
   | { type: "dismissCatchUp" }
   | { type: "vault"; action: "load" | "log" | "writeEnv" }
   | { type: "usage" }
+  | { type: "redeemPromo"; code: string }
   | { type: "createSecret"; name: string; value: string; access: string[] }
   | { type: "updateSecret"; id: string; value?: string; access?: string[] }
   | { type: "deleteSecret"; id: string }

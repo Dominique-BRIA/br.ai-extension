@@ -2297,6 +2297,24 @@ button.link:hover {
   margin: 6px 0 0;
 }
 
+.promo-entry {
+  margin: 8px -8px 0;
+}
+
+.promo-entry > p {
+  margin: 0 8px 6px;
+}
+
+.promo-form {
+  display: flex;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.promo-form .field-box {
+  flex: 1;
+}
+
 .usage-members-title {
   display: block;
   margin-top: 10px;

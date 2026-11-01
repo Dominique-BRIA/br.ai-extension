@@ -10,6 +10,7 @@ import type {
   MemoryType,
   Message,
   Project,
+  RedeemPromoResponse,
   RequestCodeResponse,
   SecretLogResponse,
   SecretsResponse,
@@ -336,6 +337,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "usage":
         await this.#loadUsage();
         return;
+      case "redeemPromo": {
+        const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
+        if (!found) return;
+        try {
+          const { message: result } = await this.#sources.api.post<RedeemPromoResponse>(
+            `/teams/${found.team.id}/promo`,
+            { code: message.code },
+          );
+          this.#postRaw({ type: "promoResult", ok: true, message: result });
+          await this.#loadUsage();
+          await this.#sources.store.refresh();
+        } catch (error) {
+          this.#postRaw({ type: "promoResult", ok: false, message: (error as Error).message });
+        }
+        return;
+      }
       case "vault":
         if (message.action === "load") await this.#loadVault();
         else if (message.action === "log") await this.#loadSecretLog();
@@ -1291,6 +1308,9 @@ function chatStrings(): ChatStrings {
     planLimits: t("Up to {0} member(s) and {1} project(s)"),
     usageByMember: t("Usage by member"),
     betaFree: t("AI is free during the beta: credits measure usage."),
+    enterCode: t("Enter a code"),
+    promoPlaceholder: t("PROMO CODE"),
+    apply: t("Apply"),
     vaultTitle: t("Secrets vault"),
     vaultDisabled: t("The secrets vault is not enabled on this server."),
     vaultEmpty: t(

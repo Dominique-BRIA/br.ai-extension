@@ -357,5 +357,8 @@
   "including {0} bonus": "dont {0} en bonus",
   "Up to {0} member(s) and {1} project(s)": "Jusqu'à {0} membre(s) et {1} projet(s)",
   "Usage by member": "Consommation par membre",
-  "AI is free during the beta: credits measure usage.": "Les IA sont gratuites pendant la bêta : les crédits mesurent la consommation."
+  "AI is free during the beta: credits measure usage.": "Les IA sont gratuites pendant la bêta : les crédits mesurent la consommation.",
+  "Enter a code": "Saisir un code",
+  "PROMO CODE": "CODE PROMO",
+  "Apply": "Appliquer"
 }
