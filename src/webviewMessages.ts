@@ -398,7 +398,7 @@ export type ToWebview =
       locale: string;
       logoUri: string;
       /** Le logo complet, avec le nom et la devise, pour l'écran de connexion. */
-      wordmarkUri: string;
+      wordmark: { light: string; dark: string };
       notifications: Notification[];
       unread: number;
       /** Maintenance annoncée ou en cours ; `null` tant que l'état n'est pas connu. */

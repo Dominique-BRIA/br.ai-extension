@@ -18,19 +18,19 @@ interface HeaderProps {
   strings: ChatStrings;
 }
 
-/** En-tête : le logo, « <br>.ia / section », l'équipe et ses membres en ligne, puis les actions. */
+/** En-tête : le logo, « <br/> / section », l'équipe et ses membres en ligne, puis les actions. */
 export function Header(props: HeaderProps) {
   const { strings } = props;
   return (
     <header className="header">
       <div className="brand">
         <span className="avatar">
-          <img src={props.logoUri} alt="<br>.ia" />
+          <img src={props.logoUri} alt="<br/>" />
           <span className={`presence ${props.connected ? "on" : "off"}`} aria-hidden="true" />
         </span>
         <div className="brand-text">
           <div className="breadcrumb">
-            <span className="brand-name">{"<br>.ia"}</span>
+            <span className="brand-name">{"<br/>"}</span>
             <span className="slash" aria-hidden="true">
               /
             </span>
@@ -136,7 +136,7 @@ export function BottomNav({ tab, onTab, openMemory, ordersSignal, strings }: Nav
     { id: "team", label: strings.tabTeam, icon: "organization" },
   ];
   return (
-    <nav className="bottom-nav" aria-label="<br>.ia">
+    <nav className="bottom-nav" aria-label="<br/>">
       {items.map((item) => (
         <button
           key={item.id}

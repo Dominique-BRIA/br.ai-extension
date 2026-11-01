@@ -28,7 +28,7 @@ import { WorkspaceStore } from "./workspaceStore";
 const MACHINE_ID_KEY = "bria.machineId";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const log = vscode.window.createOutputChannel("<br>.ia", { log: true });
+  const log = vscode.window.createOutputChannel("<br/>", { log: true });
   const machine = await machineInfo(context);
   const session = new Session(context);
 
@@ -78,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   async function expireSession() {
     if (!session.token) return;
     await session.clear();
-    void vscode.window.showWarningMessage(vscode.l10n.t("Your <br>.ia session has expired. Sign in again."));
+    void vscode.window.showWarningMessage(vscode.l10n.t("Your <br/> session has expired. Sign in again."));
   }
 
   const updateContext = () =>

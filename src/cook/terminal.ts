@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 /**
- * Terminal « <br>.ia · cuisinier » : montre en direct ce que fait le cuisinier sur cette
+ * Terminal « <br/> · cuisinier » : montre en direct ce que fait le cuisinier sur cette
  * machine (fichiers lus et modifiés, commandes lancées et leur sortie). Il est en lecture
  * seule ; on peut le fermer et le rouvrir à tout moment.
  */
@@ -30,7 +30,7 @@ export class CookTerminal implements vscode.Disposable {
         open: () => {
           this.#open = true;
           this.#writeEmitter.fire(
-            `\x1b[2m${vscode.l10n.t("What the <br>.ia cook does on this machine appears here. You can close this terminal at any time.")}\x1b[0m\r\n\r\n`,
+            `\x1b[2m${vscode.l10n.t("What the <br/> cook does on this machine appears here. You can close this terminal at any time.")}\x1b[0m\r\n\r\n`,
           );
           if (this.#backlog) this.#writeEmitter.fire(this.#backlog);
           this.#backlog = "";
@@ -40,7 +40,7 @@ export class CookTerminal implements vscode.Disposable {
         },
       };
       this.#terminal = vscode.window.createTerminal({
-        name: vscode.l10n.t("<br>.ia · cook"),
+        name: vscode.l10n.t("<br/> · cook"),
         pty,
         iconPath: new vscode.ThemeIcon("tools"),
       });

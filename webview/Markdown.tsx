@@ -21,13 +21,18 @@ function mermaidCode(pre: Element | undefined): string | null {
 }
 
 /**
- * Le nom « <br>.ia » ressemble à une balise HTML, que le rendu supprimerait : hors du code,
- * on l'écrit avec des entités pour qu'il s'affiche tel quel.
+ * Le nom « <br/> » ressemble à une balise HTML, que le rendu supprimerait : hors du code,
+ * on l'écrit avec des entités pour qu'il s'affiche tel quel. L'ancien nom « <br>.ia », encore
+ * présent dans les messages d'avant le changement, est traité de la même façon.
  */
 export function escapeBrand(text: string): string {
   return text
     .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/)
-    .map((part) => (part.startsWith("`") ? part : part.replaceAll("<br>.ia", "&lt;br&gt;.ia")))
+    .map((part) =>
+      part.startsWith("`")
+        ? part
+        : part.replaceAll("<br/>", "&lt;br/&gt;").replaceAll("<br>.ia", "&lt;br&gt;.ia"),
+    )
     .join("");
 }
 

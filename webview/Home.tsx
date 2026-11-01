@@ -28,7 +28,7 @@ export function Home({ user, teams, logoUri, connected, unread, onScreen, string
           </span>
           <div className="brand-text">
             <div className="breadcrumb">
-              <span className="brand-name">{"<br>.ia"}</span>
+              <span className="brand-name">{"<br/>"}</span>
               {connected && <span className="pill online-pill">{strings.online_pill}</span>}
             </div>
             <div className="brand-team">{strings.allProjects}</div>

@@ -70,7 +70,7 @@ const VISITS_KEY = "bria.lastVisits";
 const ABSENCE_MS = 3 * 60 * 60_000;
 
 /**
- * Le panneau de <br>.ia, où tout se passe : la connexion, l'accueil avec les équipes et
+ * Le panneau de <br/>, où tout se passe : la connexion, l'accueil avec les équipes et
  * leurs projets, puis le fil de discussion du projet ouvert, sa mémoire, ses commandes et
  * son équipe. Il s'affiche dans sa vue (barre latérale de droite) et, sur demande, en
  * grand dans un onglet.
@@ -231,7 +231,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       this.#panel.reveal();
       return;
     }
-    const panel = vscode.window.createWebviewPanel("bria.chatPanel", "<br>.ia", vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel("bria.chatPanel", "<br/>", vscode.ViewColumn.Active, {
       enableScripts: true,
       localResourceRoots: this.#roots(),
       retainContextWhenHidden: true,
@@ -606,7 +606,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const signOut = vscode.l10n.t("Sign out");
     const answer = await vscode.window.showWarningMessage(
       vscode.l10n.t("Sign out this machine?"),
-      { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use <br>.ia.") },
+      { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use <br/>.") },
       signOut,
     );
     if (answer !== signOut) return;
@@ -636,7 +636,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#post();
     const french = vscode.env.language.startsWith("fr");
     if (reopened) {
-      void vscode.window.showInformationMessage(vscode.l10n.t("<br>.ia is available again."));
+      void vscode.window.showInformationMessage(vscode.l10n.t("<br/> is available again."));
       // Les données ont pu changer pendant l'arrêt.
       await Promise.all([this.#sources.store.refresh(), this.#loadLatest()]);
       return;
@@ -791,7 +791,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     } catch (error) {
       const message =
         error instanceof ApiRequestError && error.code === "network"
-          ? vscode.l10n.t("The <br>.ia server cannot be reached.")
+          ? vscode.l10n.t("The <br/> server cannot be reached.")
           : (error as Error).message;
       this.#postRaw({ type: "formResult", form, ok: false, error: message });
     }
@@ -1037,7 +1037,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         strings: chatStrings(),
         locale: vscode.env.language,
         logoUri: webview.asWebviewUri(media("logo.png")).toString(),
-        wordmarkUri: webview.asWebviewUri(media("logo-complet.png")).toString(),
+        wordmark: {
+          light: webview.asWebviewUri(media("logo-clair.svg")).toString(),
+          dark: webview.asWebviewUri(media("logo-sombre.svg")).toString(),
+        },
         notifications: notifications.items,
         unread: notifications.unread,
         settings: this.#settings(),
@@ -1054,7 +1057,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   #reportError(error: unknown): void {
     if (error instanceof ApiRequestError && error.code === "network") {
-      void vscode.window.showErrorMessage(vscode.l10n.t("The <br>.ia server cannot be reached."));
+      void vscode.window.showErrorMessage(vscode.l10n.t("The <br/> server cannot be reached."));
       return;
     }
     const text = error instanceof ApiRequestError ? error.message : String(error);
@@ -1121,7 +1124,7 @@ function chatStrings(): ChatStrings {
     reply: t("Reply"),
     replyingTo: t("Replying to {0}"),
     cancelReply: t("Cancel reply"),
-    composerPlaceholder: t("Message to <br>.ia…"),
+    composerPlaceholder: t("Message to <br/>…"),
     composerHint: t("Enter to send, Shift+Enter for a new line"),
     send: t("Send"),
     today: t("Today"),
@@ -1269,7 +1272,7 @@ function chatStrings(): ChatStrings {
     codeInvalid: t("Incorrect or expired code. Try again."),
     invitationInvalid: t("This invitation code is not valid."),
     codeAlreadySent: t("A code was sent less than a minute ago: use it, or wait before asking for another."),
-    serverUnreachable: t("The <br>.ia server cannot be reached."),
+    serverUnreachable: t("The <br/> server cannot be reached."),
     authFooter: t("Your session stays on this machine, in the VS Code secret storage."),
     homeGreeting: t("Hello {0}"),
     homeIntro: t("Choose a project to open its chat."),
@@ -1305,9 +1308,9 @@ function chatStrings(): ChatStrings {
     removeMember: t("Remove from the team"),
     makeChef: t("Make team lead"),
     notificationsTitle: t("Notifications"),
-    noNotifications: t("Nothing new. Mentions, answers from <br>.ia and finished orders appear here."),
+    noNotifications: t("Nothing new. Mentions, answers from <br/> and finished orders appear here."),
     notifMention: t("{0} mentioned you"),
-    notifReply: t("<br>.ia answered you"),
+    notifReply: t("<br/> answered you"),
     newBadge: t("NEW"),
     settingsTitle: t("Settings"),
     profileSection: t("Profile"),
@@ -1330,7 +1333,7 @@ function chatStrings(): ChatStrings {
     version: t("Version {0}"),
     catchUpTitle: t("While you were away"),
     catchUpCount: t("{0} new message(s)"),
-    catchUpLoading: t("<br>.ia is summarizing what happened…"),
+    catchUpLoading: t("<br/> is summarizing what happened…"),
     close: t("Close"),
     editEmail: t("Change"),
     renameProject: t("Rename the project"),

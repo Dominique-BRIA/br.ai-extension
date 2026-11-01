@@ -72,7 +72,7 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       } catch (error) {
         const message =
           error instanceof ApiRequestError && error.code === "network"
-            ? vscode.l10n.t("The <br>.ia server cannot be reached.")
+            ? vscode.l10n.t("The <br/> server cannot be reached.")
             : (error as Error).message;
         log.error(`${id} : ${(error as Error).message}`);
         void vscode.window.showErrorMessage(message);
@@ -119,7 +119,7 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
         { label: "English", locale: "en" },
       ];
       const language = await vscode.window.showQuickPick(languages, {
-        title: vscode.l10n.t("Language of the emails <br>.ia sends you"),
+        title: vscode.l10n.t("Language of the emails <br/> sends you"),
         placeHolder: languages.find((item) => item.locale === user.locale)?.label,
       });
       if (!language) return;
@@ -154,7 +154,7 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       const signOut = vscode.l10n.t("Sign out");
       const answer = await vscode.window.showWarningMessage(
         vscode.l10n.t("Sign out {0}?", picked.label),
-        { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use <br>.ia.") },
+        { modal: true, detail: vscode.l10n.t("This machine will need to sign in again to use <br/>.") },
         signOut,
       );
       if (answer !== signOut) return;
@@ -168,7 +168,7 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       if (!user) return;
       const proceed = vscode.l10n.t("Continue");
       const answer = await vscode.window.showWarningMessage(
-        vscode.l10n.t("Delete your <br>.ia account?"),
+        vscode.l10n.t("Delete your <br/> account?"),
         {
           modal: true,
           detail: vscode.l10n.t(
@@ -179,7 +179,7 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       );
       if (answer !== proceed) return;
       const typed = await vscode.window.showInputBox({
-        title: vscode.l10n.t("Delete your <br>.ia account"),
+        title: vscode.l10n.t("Delete your <br/> account"),
         prompt: vscode.l10n.t("To confirm, type your email address: {0}", user.email),
         ignoreFocusOut: true,
         validateInput: (value) =>

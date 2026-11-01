@@ -144,7 +144,7 @@ export function TeamTab(props: Props) {
         </span>
         <div className="person-text">
           <div className="person-name">
-            {"<br>.ia"} · {strings.serveur}
+            {"<br/>"} · {strings.serveur}
           </div>
           <div className="meta">{strings.serveurRole}</div>
         </div>
@@ -159,7 +159,7 @@ export function TeamTab(props: Props) {
         </span>
         <div className="person-text">
           <div className="person-name">
-            {"<br>.ia"} · {strings.cuisinier}
+            {"<br/>"} · {strings.cuisinier}
           </div>
           <div className="meta">{strings.cuisinierRole}</div>
         </div>

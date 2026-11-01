@@ -31,18 +31,8 @@ function App() {
   }, []);
 
   if (!snapshot) return null;
-  const {
-    state,
-    strings,
-    connection,
-    locale,
-    logoUri,
-    wordmarkUri,
-    notifications,
-    unread,
-    settings,
-    platform,
-  } = snapshot;
+  const { state, strings, connection, locale, logoUri, wordmark, notifications, unread, settings, platform } =
+    snapshot;
 
   const french = locale.startsWith("fr");
   const when = (iso: string | null) =>
@@ -87,7 +77,7 @@ function App() {
       </div>
     ) : null;
 
-  if (state.view === "signedOut") return <SignIn wordmarkUri={wordmarkUri} strings={strings} />;
+  if (state.view === "signedOut") return <SignIn wordmark={wordmark} strings={strings} />;
 
   const connected = connection.status === "connected";
   const banner = connected ? null : (

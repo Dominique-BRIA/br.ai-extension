@@ -1,14 +1,14 @@
 /*
- * Panneau de <br>.ia, d'après la maquette validée par Dominique.
- * Couleur principale : le turquoise du logo ; l'orange du logo signale l'attente et les alertes.
+ * Panneau de <br/>, d'après la maquette validée par Dominique.
+ * Couleur principale : le bleu du logo ; l'orange du logo signale l'attente et les alertes.
  * Fonds, textes et bordures viennent du thème actif de VS Code, pour suivre les thèmes clairs et sombres.
  */
 
 :root {
-  --bria-accent: #13b0bf;
-  --bria-accent-strong: #0b7d89;
+  --bria-accent: #5896d8;
+  --bria-accent-strong: #1860a0;
   --bria-on-accent: #ffffff;
-  --bria-warm: #fda43c;
+  --bria-warm: #faa03a;
   --bria-success: #3fb950;
   --bria-danger: var(--vscode-errorForeground, #f14c4c);
   --surface: var(--vscode-sideBar-background, var(--vscode-editor-background));
@@ -20,8 +20,8 @@
 }
 
 body.vscode-light {
-  --bria-accent: #0b7d89;
-  --bria-accent-strong: #0b7d89;
+  --bria-accent: #1860a0;
+  --bria-accent-strong: #1860a0;
   --bria-warm: #b45f06;
   --bria-success: #1a7f37;
 }
@@ -222,9 +222,8 @@ button.link:hover {
 
 .auth-hero {
   width: 100%;
-  max-width: 380px;
+  max-width: 230px;
   border-radius: 16px;
-  background: #0a192c;
   margin-bottom: 18px;
   overflow: hidden;
 }
@@ -232,6 +231,18 @@ button.link:hover {
 .auth-hero img {
   display: block;
   width: 100%;
+}
+
+/* Logo clair sur un thème clair, sombre sinon. */
+.auth-hero .logo-light,
+body.vscode-light .auth-hero .logo-dark,
+body.vscode-high-contrast-light .auth-hero .logo-dark {
+  display: none;
+}
+
+body.vscode-light .auth-hero .logo-light,
+body.vscode-high-contrast-light .auth-hero .logo-light {
+  display: block;
 }
 
 .auth-card {

@@ -20,7 +20,7 @@
   "command.archiveProject": "Archiver le projet",
   "command.removeMember": "Retirer de l'équipe",
   "command.transferChef": "Nommer chef d'équipe",
-  "config.serverUrl": "Adresse du serveur <br>.ia.",
+  "config.serverUrl": "Adresse du serveur <br/>.",
   "config.notifyMentions": "Afficher une notification quand un membre vous mentionne ou quand une de vos commandes se termine.",
   "command.editProfile": "Modifier mon profil",
   "command.manageMachines": "Gérer mes machines connectées",
@@ -54,7 +54,7 @@
   "config.permissionMode.plan": "Le cuisinier lit et propose, mais ne modifie rien.",
   "config.lendMachine": "Laisser le cuisinier travailler sur cette machine pour les commandes de vos coéquipiers quand ils ne sont pas connectés.",
   "command.showCookTerminal": "Voir ce que lance le cuisinier",
-  "command.openChatInEditor": "Ouvrir <br>.ia",
+  "command.openChatInEditor": "Ouvrir <br/>",
   "config.showCookTerminal": "Ouvrir automatiquement le terminal du cuisinier quand il lance une commande sur cette machine.",
   "command.memory.add": "Nouvelle note"
 }

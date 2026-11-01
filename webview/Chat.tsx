@@ -299,7 +299,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
                           <span className="author">
                             {authorName(message.author, strings, state.myUserId)}
                           </span>
-                          {agent && <span className="agent-label">{"<br>.ia"}</span>}
+                          {agent && <span className="agent-label">{"<br/>"}</span>}
                           {!mine && (
                             <time dateTime={message.createdAt}>{formatTime(message.createdAt, locale)}</time>
                           )}

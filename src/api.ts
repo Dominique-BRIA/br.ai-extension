@@ -22,7 +22,7 @@ export class ApiRequestError extends Error {
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-/** Client de l'API HTTP du serveur <br>.ia. */
+/** Client de l'API HTTP du serveur <br/>. */
 export class Api {
   constructor(
     private readonly getToken: () => string | undefined,

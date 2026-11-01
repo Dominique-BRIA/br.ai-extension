@@ -5,7 +5,8 @@ import { post } from "./vscodeApi";
 type Step = "email" | "invitation" | "name" | "code";
 
 interface Props {
-  wordmarkUri: string;
+  /** Le logo complet, en version claire et sombre. */
+  wordmark: { light: string; dark: string };
   strings: ChatStrings;
 }
 
@@ -13,7 +14,7 @@ interface Props {
  * Connexion dans le panneau, comme une application : l'e-mail, le code d'invitation
  * si le compte n'existe pas encore, le nom affiché, puis le code reçu par e-mail.
  */
-export function SignIn({ wordmarkUri, strings }: Props) {
+export function SignIn({ wordmark, strings }: Props) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [invitationCode, setInvitationCode] = useState("");
@@ -157,7 +158,9 @@ export function SignIn({ wordmarkUri, strings }: Props) {
   return (
     <div className="auth">
       <div className="auth-hero">
-        <img src={wordmarkUri} alt="<br>.ia" />
+        {/* La version affichée suit le thème de VS Code (feuille de style). */}
+        <img className="logo-light" src={wordmark.light} alt="<br/> — Retour à la ligne" />
+        <img className="logo-dark" src={wordmark.dark} alt="<br/> — Retour à la ligne" />
       </div>
 
       <form className="auth-card" onSubmit={submit} noValidate>

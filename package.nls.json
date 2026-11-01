@@ -20,7 +20,7 @@
   "command.archiveProject": "Archive Project",
   "command.removeMember": "Remove from Team",
   "command.transferChef": "Make Team Lead",
-  "config.serverUrl": "Address of the <br>.ia server.",
+  "config.serverUrl": "Address of the <br/> server.",
   "config.notifyMentions": "Show a notification when a teammate mentions you or when one of your orders finishes.",
   "command.editProfile": "Edit Profile",
   "command.manageMachines": "Manage Signed-In Machines",
@@ -54,7 +54,7 @@
   "config.permissionMode.plan": "The cook reads and proposes, but changes nothing.",
   "config.lendMachine": "Let the cook work on this machine for your teammates' orders when they are not connected.",
   "command.showCookTerminal": "Show What the Cook Runs",
-  "command.openChatInEditor": "Open <br>.ia",
+  "command.openChatInEditor": "Open <br/>",
   "config.showCookTerminal": "Open the cook's terminal automatically when it runs a command on this machine.",
   "command.memory.add": "New Note"
 }
