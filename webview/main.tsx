@@ -31,8 +31,61 @@ function App() {
   }, []);
 
   if (!snapshot) return null;
-  const { state, strings, connection, locale, logoUri, wordmarkUri, notifications, unread, settings } =
-    snapshot;
+  const {
+    state,
+    strings,
+    connection,
+    locale,
+    logoUri,
+    wordmarkUri,
+    notifications,
+    unread,
+    settings,
+    platform,
+  } = snapshot;
+
+  const french = locale.startsWith("fr");
+  const when = (iso: string | null) =>
+    iso
+      ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso))
+      : "";
+  const platformMessage = platform ? (french ? platform.message.fr : platform.message.en) : "";
+  if (platform?.state === "ongoing" && !platform.exempt) {
+    return (
+      <div className="maintenance" role="alert">
+        <img src={logoUri} alt="" className="maintenance-logo" />
+        <h1 className="auth-title">{strings.maintenanceTitle}</h1>
+        <p className="auth-intro">{platformMessage}</p>
+        {platform.endsAt && (
+          <p className="meta">{strings.maintenanceBack.replace("{0}", when(platform.endsAt))}</p>
+        )}
+      </div>
+    );
+  }
+  const maintenanceBanner =
+    platform?.state === "scheduled" ? (
+      <div className="maintenance-banner" role="status">
+        <span className="codicon codicon-tools" aria-hidden="true" />
+        <span>
+          {strings.maintenanceBanner
+            .replace("{0}", when(platform.startsAt))
+            .replace(
+              "{1}",
+              String(
+                platform.startsAt && platform.endsAt
+                  ? Math.round((Date.parse(platform.endsAt) - Date.parse(platform.startsAt)) / 60_000)
+                  : 0,
+              ),
+            )
+            .replace("{2}", platformMessage)}
+        </span>
+      </div>
+    ) : platform?.state === "ongoing" ? (
+      <div className="maintenance-banner" role="status">
+        <span className="codicon codicon-tools" aria-hidden="true" />
+        <span>{strings.maintenanceExempt}</span>
+      </div>
+    ) : null;
 
   if (state.view === "signedOut") return <SignIn wordmarkUri={wordmarkUri} strings={strings} />;
 
@@ -123,6 +176,7 @@ function App() {
 
   return (
     <>
+      {maintenanceBanner}
       {banner}
       {content}
     </>

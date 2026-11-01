@@ -2,6 +2,7 @@ import type {
   Attachment,
   Locale,
   MachineSession,
+  MaintenanceStatus,
   MemoryItem,
   MemoryStatus,
   MemoryType,
@@ -266,6 +267,11 @@ export interface ChatStrings {
   enterCode: string;
   promoPlaceholder: string;
   apply: string;
+  /** Maintenance */
+  maintenanceTitle: string;
+  maintenanceBack: string;
+  maintenanceBanner: string;
+  maintenanceExempt: string;
   /** Coffre de secrets */
   vaultTitle: string;
   vaultDisabled: string;
@@ -395,6 +401,8 @@ export type ToWebview =
       wordmarkUri: string;
       notifications: Notification[];
       unread: number;
+      /** Maintenance annoncée ou en cours ; `null` tant que l'état n'est pas connu. */
+      platform: MaintenanceStatus | null;
       /** Absent hors connexion. */
       settings: PanelSettings | null;
     }

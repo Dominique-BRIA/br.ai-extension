@@ -360,5 +360,11 @@
   "AI is free during the beta: credits measure usage.": "Les IA sont gratuites pendant la bêta : les crédits mesurent la consommation.",
   "Enter a code": "Saisir un code",
   "PROMO CODE": "CODE PROMO",
-  "Apply": "Appliquer"
+  "Apply": "Appliquer",
+  "Maintenance in progress": "Maintenance en cours",
+  "Back around {0}.": "Retour prévu vers {0}.",
+  "Maintenance planned on {0}, for about {1} min: {2}": "Maintenance prévue le {0}, pendant environ {1} min : {2}",
+  "Maintenance in progress: your account keeps access.": "Maintenance en cours : votre compte garde l'accès.",
+  "<br>.ia is available again.": "<br>.ia est de nouveau disponible.",
+  "Maintenance planned on {0}: {1}": "Maintenance prévue le {0} : {1}"
 }

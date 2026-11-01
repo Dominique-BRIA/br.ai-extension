@@ -7,6 +7,7 @@ import type {
   CurrentInvitationResponse,
   ListMessagesResponse,
   Locale,
+  MaintenanceStatus,
   MemoryType,
   Message,
   Project,
@@ -91,6 +92,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #revertable: string[] = [];
   /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
   readonly #invitations = new Map<string, TeamInvitation | null>();
+  /** État de la plateforme (maintenance), connu après la connexion. */
+  #platform: MaintenanceStatus | null = null;
   /** Formule et consommation de chaque équipe, une fois chargées. */
   readonly #usages = new Map<string, TeamUsage>();
   /** Coffre de secrets de chaque projet, une fois chargé. */
@@ -116,6 +119,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         if (event.affectsConfiguration("bria")) this.#post();
       }),
       connection.onEvent((event) => {
+        if (event.type === "platform.status") void this.#setPlatform(event.maintenance, event.reopened);
         if (event.type === "message.created" && event.message.projectId === this.#projectId) {
           this.#append(event.message);
         }
@@ -138,6 +142,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       }),
       // Après une reconnexion, des messages ont pu arriver : on recharge le fil.
       connection.onDidChangeState((state) => {
+        if (state.status === "connected") void this.#loadPlatform();
         if (state.status === "connected" && this.#projectId) void this.#loadLatest();
       }),
     ];
@@ -615,6 +620,44 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
   }
 
+  /** L'état de la plateforme, demandé à la connexion (route publique). */
+  async #loadPlatform(): Promise<void> {
+    try {
+      const { maintenance } = await this.#sources.api.get<{ maintenance: MaintenanceStatus }>("/status");
+      await this.#setPlatform(maintenance, false);
+    } catch {
+      // Sans réponse, on garde l'état connu.
+    }
+  }
+
+  /** Nouvel état : annonce d'une maintenance (une fois), ou réouverture. */
+  async #setPlatform(maintenance: MaintenanceStatus, reopened: boolean): Promise<void> {
+    this.#platform = maintenance;
+    this.#post();
+    const french = vscode.env.language.startsWith("fr");
+    if (reopened) {
+      void vscode.window.showInformationMessage(vscode.l10n.t("<br>.ia is available again."));
+      // Les données ont pu changer pendant l'arrêt.
+      await Promise.all([this.#sources.store.refresh(), this.#loadLatest()]);
+      return;
+    }
+    if (maintenance.state !== "scheduled" || !maintenance.startsAt) return;
+    const announced = this.context.globalState.get<string>("bria.maintenanceAnnounced");
+    if (announced === maintenance.startsAt) return;
+    await this.context.globalState.update("bria.maintenanceAnnounced", maintenance.startsAt);
+    const when = new Intl.DateTimeFormat(vscode.env.language, {
+      dateStyle: "full",
+      timeStyle: "short",
+    }).format(new Date(maintenance.startsAt));
+    void vscode.window.showWarningMessage(
+      vscode.l10n.t(
+        "Maintenance planned on {0}: {1}",
+        when,
+        french ? maintenance.message.fr : maintenance.message.en,
+      ),
+    );
+  }
+
   async #loadUsage(): Promise<void> {
     const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
     if (!found) return;
@@ -998,6 +1041,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         notifications: notifications.items,
         unread: notifications.unread,
         settings: this.#settings(),
+        platform: this.#platform,
       };
       void webview.postMessage(message);
     }
@@ -1311,6 +1355,10 @@ function chatStrings(): ChatStrings {
     enterCode: t("Enter a code"),
     promoPlaceholder: t("PROMO CODE"),
     apply: t("Apply"),
+    maintenanceTitle: t("Maintenance in progress"),
+    maintenanceBack: t("Back around {0}."),
+    maintenanceBanner: t("Maintenance planned on {0}, for about {1} min: {2}"),
+    maintenanceExempt: t("Maintenance in progress: your account keeps access."),
     vaultTitle: t("Secrets vault"),
     vaultDisabled: t("The secrets vault is not enabled on this server."),
     vaultEmpty: t(

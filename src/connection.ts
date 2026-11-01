@@ -136,6 +136,7 @@ export class Connection implements vscode.Disposable {
       case "memory.changed":
       case "workspace.changed":
       case "preference.noted":
+      case "platform.status":
       case "tool.call":
       case "order.updated":
         this.#onEvent.fire(message);
