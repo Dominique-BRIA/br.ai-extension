@@ -64,6 +64,13 @@ export function OrdersTab(props: TabProps) {
   const pendingQueue = props.orders.filter((order) => order.status === "pending").reverse();
   const shown = filter === "running" ? active : filter === "done" ? finished : props.orders;
 
+  const isMine = (order: Order) =>
+    props.isChef || (order.requestedBy.kind === "member" && order.requestedBy.userId === props.myUserId);
+  const canPush = (order: Order) =>
+    order.status === "done" && order.commit && !order.pushed && order.machine?.userId === props.myUserId;
+  const canValidate = (order: Order) =>
+    order.status === "done" && order.commit && order.pushed && !order.merged && isMine(order);
+
   const canStop = (order: Order) =>
     (order.status === "pending" || order.status === "running") &&
     (props.isChef || (order.requestedBy.kind === "member" && order.requestedBy.userId === props.myUserId));
@@ -198,7 +205,20 @@ export function OrdersTab(props: TabProps) {
                 {order.commit && (
                   <span>
                     {" · "}
-                    {order.commit} · {order.pushed ? strings.orderPushed : strings.orderNotPushed}
+                    {order.commit} ·{" "}
+                    {order.merged
+                      ? strings.orderMerged
+                      : order.pushed
+                        ? strings.orderPushed
+                        : strings.orderNotPushed}
+                  </span>
+                )}
+                {order.pullRequest && (
+                  <span>
+                    {" · "}
+                    <a href={order.pullRequest.url}>
+                      {strings.pullRequestLabel.replace("{0}", String(order.pullRequest.number))}
+                    </a>
                   </span>
                 )}
               </div>
@@ -240,7 +260,28 @@ export function OrdersTab(props: TabProps) {
                   {strings.openFile} {file}
                 </button>
               ))}
-              {props.revertable.includes(order.id) && order.status !== "running" && (
+              {canPush(order) && (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => post({ type: "orderAction", orderId: order.id, action: "push" })}
+                >
+                  <span className="codicon codicon-cloud-upload" aria-hidden="true" />
+                  {strings.pushOrder}
+                </button>
+              )}
+              {canValidate(order) && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => post({ type: "orderAction", orderId: order.id, action: "validate" })}
+                >
+                  <span className="codicon codicon-git-merge" aria-hidden="true" />
+                  {strings.validateOrder}
+                </button>
+              )}
+              {/* Une fois commité, le travail est dans l'historique : le restaurer bloquerait la commande suivante. */}
+              {props.revertable.includes(order.id) && order.status !== "running" && !order.commit && (
                 <button
                   type="button"
                   className="ghost-button"

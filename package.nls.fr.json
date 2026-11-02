@@ -61,5 +61,7 @@
   "config.pushMode.ask": "Demander avant de pousser la branche.",
   "config.pushMode.auto": "Pousser la branche tout de suite.",
   "command.linkRepo": "Brancher un dépôt GitHub",
-  "command.cloneRepo": "Cloner le dépôt du projet"
+  "command.cloneRepo": "Cloner le dépôt du projet",
+  "command.order.push": "Pousser la branche de la commande",
+  "command.order.validate": "Valider la commande et fusionner"
 }

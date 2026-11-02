@@ -61,5 +61,7 @@
   "config.pushMode.ask": "Ask before pushing the branch.",
   "config.pushMode.auto": "Push the branch right away.",
   "command.linkRepo": "Link a GitHub Repository",
-  "command.cloneRepo": "Clone the Project Repository"
+  "command.cloneRepo": "Clone the Project Repository",
+  "command.order.push": "Push the Order's Branch",
+  "command.order.validate": "Validate the Order and Merge"
 }

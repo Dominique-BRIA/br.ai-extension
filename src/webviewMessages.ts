@@ -72,6 +72,10 @@ export interface ChatStrings {
   cloneRepo: string;
   orderNotPushed: string;
   orderPushed: string;
+  orderMerged: string;
+  pushOrder: string;
+  validateOrder: string;
+  pullRequestLabel: string;
   stopOrder: string;
   revertOrder: string;
   showTerminal: string;
@@ -502,7 +506,7 @@ export type FromWebview =
   | { type: "attach"; pending: number }
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
-  | { type: "orderAction"; orderId: string; action: "stop" | "revert" }
+  | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */
   | { type: "openProjectFile"; path: string };

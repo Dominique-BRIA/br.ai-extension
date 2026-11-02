@@ -396,5 +396,19 @@
   "Change the repository": "Changer de dépôt",
   "Clone on this machine": "Cloner sur cette machine",
   "not pushed yet": "pas encore poussé",
-  "pushed": "poussé"
+  "pushed": "poussé",
+  "GitHub refused: {0}": "GitHub a refusé : {0}",
+  "Pushing {0}…": "Push de {0}…",
+  "Push failed: {0}": "Le push a échoué : {0}",
+  "This project no longer has a GitHub repository.": "Ce projet n'a plus de dépôt GitHub.",
+  "Validate and merge": "Valider et fusionner",
+  "Validate order {0} and merge {1} into {2}?": "Valider la commande {0} et fusionner {1} dans {2} ?",
+  "A pull request is opened and merged with your GitHub account.": "Une pull request est ouverte et fusionnée avec votre compte GitHub.",
+  "Merging {0}…": "Fusion de {0}…",
+  "Order {0} is merged into {1}.": "La commande {0} est fusionnée dans {1}.",
+  "Open the pull request": "Ouvrir la pull request",
+  "Pull request {0} is open, but GitHub refuses the merge: {1}": "La pull request {0} est ouverte, mais GitHub refuse la fusion : {1}",
+  "merged": "fusionné",
+  "Push the branch": "Pousser la branche",
+  "Pull request {0}": "Pull request {0}"
 }

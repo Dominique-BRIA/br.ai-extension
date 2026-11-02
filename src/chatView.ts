@@ -506,10 +506,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "orderAction": {
         const order = this.#sources.orders.orders.find((candidate) => candidate.id === message.orderId);
         if (!order) return;
-        await vscode.commands.executeCommand(
-          message.action === "stop" ? "bria.order.stop" : "bria.order.revert",
-          { kind: "order", order },
-        );
+        await vscode.commands.executeCommand(`bria.order.${message.action}`, { kind: "order", order });
         return;
       }
       case "command":
@@ -1180,6 +1177,10 @@ function chatStrings(): ChatStrings {
     cloneRepo: t("Clone on this machine"),
     orderNotPushed: t("not pushed yet"),
     orderPushed: t("pushed"),
+    orderMerged: t("merged"),
+    pushOrder: t("Push the branch"),
+    validateOrder: t("Validate and merge"),
+    pullRequestLabel: t("Pull request {0}"),
     stopOrder: t("Stop"),
     revertOrder: t("Undo changes"),
     showTerminal: t("Terminal"),

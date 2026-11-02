@@ -5,6 +5,7 @@
 - Un projet peut être branché à un dépôt GitHub : le chef le choisit, chaque membre peut le cloner en un clic.
 - Chaque commande du cuisinier travaille sur sa propre branche, enregistre un commit au nom du membre, puis pousse la branche tout de suite ou après accord (réglage « bria.pushMode »).
 - Le travail non enregistré d'un membre n'est jamais touché : la commande s'arrête plutôt.
+- Le demandeur valide une commande : une pull request est ouverte et fusionnée avec son compte GitHub. Si GitHub refuse la fusion, elle reste ouverte et la raison s'affiche.
 
 ## 0.5.1
 

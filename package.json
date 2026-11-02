@@ -285,6 +285,18 @@
         "icon": "$(discard)"
       },
       {
+        "command": "bria.order.push",
+        "title": "%command.order.push%",
+        "category": "<br/>",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "bria.order.validate",
+        "title": "%command.order.validate%",
+        "category": "<br/>",
+        "icon": "$(git-merge)"
+      },
+      {
         "command": "bria.orders.refresh",
         "title": "%command.orders.refresh%",
         "category": "<br/>",
@@ -436,6 +448,14 @@
         },
         {
           "command": "bria.order.revert",
+          "when": "false"
+        },
+        {
+          "command": "bria.order.push",
+          "when": "false"
+        },
+        {
+          "command": "bria.order.validate",
           "when": "false"
         },
         {

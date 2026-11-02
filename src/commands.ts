@@ -18,7 +18,7 @@ import { git } from "./cook/git";
 import type { OrderNode, OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
 import { ProposalReview } from "./cook/proposals";
-import { githubRepo, parseRepo } from "./github";
+import { githubRepo, mergeBranch, parseRepo } from "./github";
 import type { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, type MemoryNode } from "./memoryView";
 import type { Session } from "./session";
@@ -453,6 +453,78 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       const files = await checkpoints.revert(node.order.id);
       await orders.refresh();
       void vscode.window.showInformationMessage(vscode.l10n.t("{0} file(s) restored.", files.length));
+    }),
+    command("bria.order.push", async (node?: OrderNode) => {
+      if (node?.kind !== "order" || !node.order.branch) return;
+      const { order } = node;
+      const branch = node.order.branch;
+      const folder = folders.get(order.projectId);
+      if (!folder) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("No folder is linked to this project on this machine."),
+        );
+        return;
+      }
+      const pushed = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Pushing {0}…", branch) },
+        () => git(folder, ["push", "--set-upstream", "origin", branch], 300_000),
+      );
+      if (pushed.code !== 0) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("Push failed: {0}", (pushed.stderr || pushed.stdout).split("\n")[0] ?? ""),
+        );
+        return;
+      }
+      await api.post(`/orders/${order.id}/pushed`);
+      await orders.refresh();
+    }),
+    command("bria.order.validate", async (node?: OrderNode) => {
+      if (node?.kind !== "order" || !node.order.branch) return;
+      const { order } = node;
+      const branch = node.order.branch;
+      const repo = store.project(order.projectId)?.project.repo;
+      if (!repo) {
+        void vscode.window.showErrorMessage(vscode.l10n.t("This project no longer has a GitHub repository."));
+        return;
+      }
+      const validate = vscode.l10n.t("Validate and merge");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Validate order {0} and merge {1} into {2}?", order.number, branch, repo.defaultBranch),
+        {
+          modal: true,
+          detail: vscode.l10n.t("A pull request is opened and merged with your GitHub account."),
+        },
+        validate,
+      );
+      if (answer !== validate) return;
+      const outcome = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Merging {0}…", branch) },
+        () =>
+          mergeBranch(repo.fullName, {
+            branch,
+            base: repo.defaultBranch,
+            title: order.title,
+            body: `Commande n° ${order.number}.\n\n${order.summary ?? ""}`.trim(),
+          }),
+      );
+      await api.put(`/orders/${order.id}/pull-request`, { number: outcome.number, merged: outcome.merged });
+      await orders.refresh();
+      if (outcome.merged) {
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t("Order {0} is merged into {1}.", order.number, repo.defaultBranch),
+        );
+        return;
+      }
+      const openIt = vscode.l10n.t("Open the pull request");
+      const choice = await vscode.window.showWarningMessage(
+        vscode.l10n.t(
+          "Pull request {0} is open, but GitHub refuses the merge: {1}",
+          outcome.number,
+          outcome.reason ?? "",
+        ),
+        openIt,
+      );
+      if (choice === openIt) await vscode.env.openExternal(vscode.Uri.parse(outcome.url));
     }),
     command("bria.orders.refresh", () => orders.refresh()),
 
