@@ -19,7 +19,7 @@ import { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, MemoryTreeProvider } from "./memoryView";
 import { watchFinishedOrders, watchMentions } from "./notifications";
 import { NotificationsStore } from "./notificationsStore";
-import { serverWsUrl, useDevelopmentServer } from "./server";
+import { serverWsUrl, setDevelopmentMode } from "./server";
 import { Session } from "./session";
 import { createStatusBar } from "./statusBar";
 import { TeamsTreeProvider } from "./teamsView";
@@ -28,7 +28,7 @@ import { WorkspaceStore } from "./workspaceStore";
 const MACHINE_ID_KEY = "bria.machineId";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  useDevelopmentServer(context.extensionMode === vscode.ExtensionMode.Development);
+  setDevelopmentMode(context.extensionMode === vscode.ExtensionMode.Development);
   const log = vscode.window.createOutputChannel("<br/>", { log: true });
   const machine = await machineInfo(context);
   const session = new Session(context);

@@ -7,7 +7,7 @@ const DEVELOPMENT_SERVER = "http://127.0.0.1:4000";
 let developing = false;
 
 /** Lancée en développement, l'extension vise par défaut le serveur local, jamais la base en ligne. */
-export function useDevelopmentServer(enabled: boolean): void {
+export function setDevelopmentMode(enabled: boolean): void {
   developing = enabled;
 }
 
