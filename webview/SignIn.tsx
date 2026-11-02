@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { ChatStrings, ToWebview } from "../src/webviewMessages";
 import { post } from "./vscodeApi";
 
-type Step = "email" | "invitation" | "name" | "code";
+type Step = "email" | "name" | "code";
 
 interface Props {
   /** Le logo complet, en version claire et sombre. */
@@ -11,19 +11,18 @@ interface Props {
 }
 
 /**
- * Connexion dans le panneau, comme une application : l'e-mail, le code d'invitation
- * si le compte n'existe pas encore, le nom affiché, puis le code reçu par e-mail.
+ * Connexion dans le panneau, comme une application : l'e-mail, le nom affiché si le
+ * compte n'existe pas encore, puis le code reçu par e-mail.
  */
 export function SignIn({ wordmark, strings }: Props) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [invitationCode, setInvitationCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  /** Le serveur a demandé un code d'invitation : c'est un nouveau compte, il faudra un nom. */
+  /** Le compte n'existe pas encore : il faudra un nom. */
   const newAccount = useRef(false);
   /** Étape qui a envoyé la dernière demande de code (pour interpréter la réponse). */
   const resending = useRef(false);
@@ -61,10 +60,6 @@ export function SignIn({ wordmark, strings }: Props) {
           setError(null);
           setNotice(resending.current ? strings.codeResent : null);
           setStep((current) => (current === "code" || !newAccount.current ? "code" : "name"));
-        } else if (message.error === "invitation_required") {
-          newAccount.current = true;
-          setError(null);
-          setStep("invitation");
         } else if (message.error === "too_many_requests") {
           // Un code est déjà parti : on passe à sa saisie (après le nom pour un nouveau compte).
           setError(null);
@@ -92,11 +87,7 @@ export function SignIn({ wordmark, strings }: Props) {
     resending.current = again;
     setBusy(true);
     setError(null);
-    post({
-      type: "requestCode",
-      email: email.trim(),
-      invitationCode: invitationCode.trim() || undefined,
-    });
+    post({ type: "requestCode", email: email.trim() });
   };
 
   const verify = (value: string) => {
@@ -122,9 +113,6 @@ export function SignIn({ wordmark, strings }: Props) {
         newAccount.current = false;
         requestCode();
         return;
-      case "invitation":
-        if (invitationCode.trim()) requestCode();
-        return;
       case "name":
         if (displayName.trim()) {
           setError(null);
@@ -140,7 +128,6 @@ export function SignIn({ wordmark, strings }: Props) {
   const restart = () => {
     setStep("email");
     setCode("");
-    setInvitationCode("");
     setError(null);
     setNotice(null);
     newAccount.current = false;
@@ -148,12 +135,11 @@ export function SignIn({ wordmark, strings }: Props) {
 
   const titles: Record<Step, [string, string]> = {
     email: [strings.authWelcome, strings.authIntro],
-    invitation: [strings.invitationTitle, strings.invitationIntro],
     name: [strings.nameTitle, strings.nameIntro],
     code: [strings.codeTitle, strings.codeIntro.replace("{0}", email.trim())],
   };
   const [title, intro] = titles[step];
-  const order: Step[] = newAccount.current ? ["email", "invitation", "name", "code"] : ["email", "code"];
+  const order: Step[] = newAccount.current ? ["email", "name", "code"] : ["email", "code"];
 
   return (
     <div className="auth">
@@ -184,22 +170,6 @@ export function SignIn({ wordmark, strings }: Props) {
                 placeholder={strings.emailPlaceholder}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-              />
-            </span>
-          </label>
-        )}
-
-        {step === "invitation" && (
-          <label className="field">
-            <span className="field-label">{strings.invitationLabel}</span>
-            <span className="field-box">
-              <span className="codicon codicon-key" aria-hidden="true" />
-              <input
-                ref={input}
-                className="mono"
-                placeholder="BETA-XXXX-XXXX"
-                value={invitationCode}
-                onChange={(event) => setInvitationCode(event.target.value.toUpperCase())}
               />
             </span>
           </label>
@@ -270,7 +240,7 @@ export function SignIn({ wordmark, strings }: Props) {
             </button>
           </div>
         )}
-        {(step === "invitation" || step === "name") && (
+        {step === "name" && (
           <div className="auth-links">
             <button type="button" className="link" onClick={restart}>
               <span className="codicon codicon-arrow-left" aria-hidden="true" />

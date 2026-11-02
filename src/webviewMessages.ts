@@ -170,9 +170,6 @@ export interface ChatStrings {
   emailLabel: string;
   emailPlaceholder: string;
   getCode: string;
-  invitationTitle: string;
-  invitationIntro: string;
-  invitationLabel: string;
   continue: string;
   nameTitle: string;
   nameIntro: string;
@@ -284,6 +281,8 @@ export interface ChatStrings {
   betaFree: string;
   enterCode: string;
   promoPlaceholder: string;
+  noCreditsChef: string;
+  noCreditsMember: string;
   apply: string;
   /** Maintenance */
   maintenanceTitle: string;
@@ -473,7 +472,7 @@ export type WebviewCommand =
 /** Webview → extension. */
 export type FromWebview =
   | { type: "ready" }
-  | { type: "requestCode"; email: string; invitationCode?: string }
+  | { type: "requestCode"; email: string }
   | { type: "verifyCode"; email: string; code: string; displayName?: string }
   | { type: "openProject"; projectId: string | null }
   | { type: "createTeam"; name: string }

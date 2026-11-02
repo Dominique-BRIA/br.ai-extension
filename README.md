@@ -4,7 +4,7 @@
 
 \<br/\> est un chat d'équipe dans VS Code, où l'IA suit vos discussions, note vos décisions, aide à arbitrer vos désaccords et réalise le travail demandé sur la machine d'un membre.
 
-> \<br/\> est en **bêta privée, sur invitation**. Demandez votre invitation sur [br.garah.me](https://br.garah.me).
+> \<br/\> est en **bêta** et l'inscription est libre. L'IA fonctionne avec des crédits : demandez votre code d'invitation sur [br.garah.me](https://br.garah.me).
 
 ## Ce que fait \<br/\>
 
@@ -17,8 +17,8 @@
 ## Démarrer
 
 1. Installez l'extension, puis ouvrez le panneau \<br/\>.
-2. Saisissez votre adresse e-mail et votre code d'invitation, puis le code reçu par e-mail.
-3. Créez une équipe et un projet, ou rejoignez ceux de vos collègues avec leur clé d'invitation.
+2. Saisissez votre adresse e-mail, puis le code reçu par e-mail.
+3. Créez une équipe et un projet, puis saisissez votre code d'invitation dans l'onglet Équipe pour activer l'IA. Vous pouvez aussi rejoindre vos collègues avec leur clé d'équipe.
 
 ## Vous gardez la main sur votre machine
 
@@ -46,7 +46,7 @@ Une question ou un problème ? Utilisez la commande « Envoyer un retour » dans
 
 \<br/\> is a team chat inside VS Code where AI follows your discussions, keeps track of your decisions, helps settle disagreements and carries out the requested work on a member's machine.
 
-> \<br/\> is in **private beta, invitation-only**. Request your invitation at [br.garah.me/en](https://br.garah.me/en).
+> \<br/\> is in **beta** and sign-up is open. The AI runs on credits: request your invitation code at [br.garah.me/en](https://br.garah.me/en).
 
 - **A chat for each project**, live or asynchronous, right in your editor.
 - **The server**: an agent that follows the conversation, keeps the project memory and answers when asked.

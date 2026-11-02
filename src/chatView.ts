@@ -389,7 +389,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         this.#post();
         return;
       case "requestCode":
-        await this.#requestCode(message.email, message.invitationCode);
+        await this.#requestCode(message.email);
         return;
       case "verifyCode":
         await this.#verifyCode(message.email, message.code, message.displayName);
@@ -761,12 +761,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   /** Première étape de connexion : le serveur envoie un code par e-mail. */
-  async #requestCode(email: string, invitationCode: string | undefined): Promise<void> {
+  async #requestCode(email: string): Promise<void> {
     try {
-      const { newAccount } = await this.#sources.api.post<RequestCodeResponse>("/auth/code", {
-        email,
-        invitationCode,
-      });
+      const { newAccount } = await this.#sources.api.post<RequestCodeResponse>("/auth/code", { email });
       this.#postRaw({ type: "authResult", step: "requestCode", ok: true, newAccount });
     } catch (error) {
       this.#postRaw({ type: "authResult", step: "requestCode", ok: false, ...errorOf(error) });
@@ -1276,11 +1273,6 @@ function chatStrings(): ChatStrings {
     emailLabel: t("Email address"),
     emailPlaceholder: t("name@example.org"),
     getCode: t("Receive a code"),
-    invitationTitle: t("Invitation code"),
-    invitationIntro: t(
-      "The beta is private. Enter the beta code you received, or the key of the team you are joining.",
-    ),
-    invitationLabel: t("Beta code or team key"),
     continue: t("Continue"),
     nameTitle: t("Your name"),
     nameIntro: t("The name your team will see in the chat."),
@@ -1381,7 +1373,11 @@ function chatStrings(): ChatStrings {
     usageByMember: t("Usage by member"),
     betaFree: t("AI is free during the beta: credits measure usage."),
     enterCode: t("Enter a code"),
-    promoPlaceholder: t("PROMO CODE"),
+    promoPlaceholder: t("INVITATION OR PROMO CODE"),
+    noCreditsChef: t(
+      "No AI credits yet. Enter your invitation code to turn on the server and the cook, or request one at br.garah.me.",
+    ),
+    noCreditsMember: t("No AI credits yet. The team lead can enter an invitation code."),
     apply: t("Apply"),
     maintenanceTitle: t("Maintenance in progress"),
     maintenanceBack: t("Back around {0}."),

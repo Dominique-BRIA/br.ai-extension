@@ -66,6 +66,7 @@ export function UsageCard({ usage, isChef, strings, locale }: Props) {
         </span>
         <span className="meta">{Math.round(ratio * 100)} %</span>
       </div>
+      {usage.quota <= 0 && <p>{isChef ? strings.noCreditsChef : strings.noCreditsMember}</p>}
       <p className="meta">
         {strings.planLimits
           .replace("{0}", String(usage.plan.maxMembers))

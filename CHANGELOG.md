@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.6.1
+
+- L'inscription est ouverte à tous, sans code d'invitation.
+- Le code d'invitation donne des crédits d'IA à l'équipe : le chef le saisit dans l'onglet Équipe.
+
 ## 0.6.0
 
 - Un projet peut être branché à un dépôt GitHub : le chef le choisit, chaque membre peut le cloner en un clic.
