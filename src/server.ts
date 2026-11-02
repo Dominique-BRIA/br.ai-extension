@@ -1,7 +1,7 @@
 import { WS_PATH } from "@br-ia/protocol";
 import * as vscode from "vscode";
 
-const ONLINE_SERVER = "https://api.br.garah.me";
+const ONLINE_SERVER = "https://br-ia-api-a8gwhdfxccd6cham.germanywestcentral-01.azurewebsites.net";
 const DEVELOPMENT_SERVER = "http://127.0.0.1:4000";
 
 let developing = false;

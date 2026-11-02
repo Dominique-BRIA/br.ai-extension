@@ -655,7 +655,7 @@
         "bria.serverUrl": {
           "type": "string",
           "scope": "application",
-          "default": "https://api.br.garah.me",
+          "default": "https://br-ia-api-a8gwhdfxccd6cham.germanywestcentral-01.azurewebsites.net",
           "markdownDescription": "%config.serverUrl%"
         },
         "bria.notifyMentions": {

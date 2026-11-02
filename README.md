@@ -24,7 +24,7 @@ br-ia/
 
 3. Ouvrir ce dossier dans VS Code et lancer **Lancer l'extension** (F5). Une nouvelle fenêtre s'ouvre avec <br/> dans la barre d'activité ; elle se connecte au serveur au démarrage.
 
-L'adresse du serveur se règle avec le paramètre `bria.serverUrl` : par défaut `https://api.br.garah.me`, et `http://127.0.0.1:4000` quand l'extension est lancée en développement.
+L'adresse du serveur se règle avec le paramètre `bria.serverUrl` : par défaut `https://br-ia-api-a8gwhdfxccd6cham.germanywestcentral-01.azurewebsites.net`, et `http://127.0.0.1:4000` quand l'extension est lancée en développement.
 
 En développement, le serveur accepte le code d'invitation `BETA-DEV` et écrit les codes de connexion dans son journal.
 
