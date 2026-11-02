@@ -1174,6 +1174,7 @@ function chatStrings(): ChatStrings {
     linkFolder: t("Link a folder"),
     repoTitle: t("GitHub repository"),
     repoNone: t("No repository linked. The cook works in the folder without touching Git."),
+    repoAppConnected: t("GitHub application connected"),
     linkRepo: t("Link a repository"),
     changeRepo: t("Change the repository"),
     cloneRepo: t("Clone on this machine"),

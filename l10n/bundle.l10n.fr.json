@@ -403,7 +403,6 @@
   "This project no longer has a GitHub repository.": "Ce projet n'a plus de dépôt GitHub.",
   "Validate and merge": "Valider et fusionner",
   "Validate order {0} and merge {1} into {2}?": "Valider la commande {0} et fusionner {1} dans {2} ?",
-  "A pull request is opened and merged with your GitHub account.": "Une pull request est ouverte et fusionnée avec votre compte GitHub.",
   "Merging {0}…": "Fusion de {0}…",
   "Order {0} is merged into {1}.": "La commande {0} est fusionnée dans {1}.",
   "Open the pull request": "Ouvrir la pull request",
@@ -434,5 +433,10 @@
   "Pass order {0} on to another machine?": "Passer la commande {0} à une autre machine ?",
   "The cook finishes its current step, pushes its work to GitHub and leaves a handoff note. The next available machine resumes it.": "Le cuisinier termine son étape, pousse son travail sur GitHub et laisse une note de reprise. La prochaine machine disponible reprend la commande.",
   "Pass on to another machine": "Passer à une autre machine",
-  "Handoff note": "Note de reprise"
+  "Handoff note": "Note de reprise",
+  "A pull request is opened, then merged.": "Une pull request est ouverte, puis fusionnée.",
+  "Install the application": "Installer l'application",
+  "Install the <br/> GitHub application on {0}?": "Installer l'application GitHub de <br/> sur {0} ?",
+  "It is optional. The server can then open and merge pull requests even when no machine is on, and it hears about merges made directly on GitHub. Without it, everything works through each member's GitHub connection.": "Elle est facultative. Le serveur peut alors ouvrir et fusionner les pull requests même sans machine allumée, et il est prévenu des fusions faites directement sur GitHub. Sans elle, tout passe par la connexion GitHub de chaque membre.",
+  "GitHub application connected": "application GitHub connectée"
 }

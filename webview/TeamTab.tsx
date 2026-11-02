@@ -133,7 +133,10 @@ export function TeamTab(props: Props) {
           {props.repo ? (
             <>
               <div className="person-name">{props.repo.fullName}</div>
-              <div className="meta">{props.repo.defaultBranch}</div>
+              <div className="meta">
+                {props.repo.defaultBranch}
+                {props.repo.appConnected && ` · ${strings.repoAppConnected}`}
+              </div>
             </>
           ) : (
             <div className="meta">{strings.repoNone}</div>

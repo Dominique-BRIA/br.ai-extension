@@ -3,7 +3,9 @@ import { join } from "node:path";
 import type {
   CreateInvitationResponse,
   Locale,
+  OrderValidateResponse,
   Project,
+  RepoAppStatus,
   SessionsResponse,
   Team,
   User,
@@ -316,6 +318,22 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       await api.put(`/projects/${project.id}/repo`, {
         repo: { fullName: repo.fullName, defaultBranch: repo.defaultBranch },
       });
+      // L'application GitHub reste un choix du chef (F-GIT-10).
+      const app = await api.get<RepoAppStatus>(`/projects/${project.id}/repo/app`);
+      if (app.available && !app.connected && app.installUrl) {
+        const install = vscode.l10n.t("Install the application");
+        const choice = await vscode.window.showInformationMessage(
+          vscode.l10n.t("Install the <br/> GitHub application on {0}?", repo.fullName),
+          {
+            modal: true,
+            detail: vscode.l10n.t(
+              "It is optional. The server can then open and merge pull requests even when no machine is on, and it hears about merges made directly on GitHub. Without it, everything works through each member's GitHub connection.",
+            ),
+          },
+          install,
+        );
+        if (choice === install) await vscode.env.openExternal(vscode.Uri.parse(app.installUrl));
+      }
       if (folder) {
         void vscode.window.showInformationMessage(
           vscode.l10n.t(
@@ -596,23 +614,28 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
         vscode.l10n.t("Validate order {0} and merge {1} into {2}?", order.number, branch, repo.defaultBranch),
         {
           modal: true,
-          detail: vscode.l10n.t("A pull request is opened and merged with your GitHub account."),
+          detail: vscode.l10n.t("A pull request is opened, then merged."),
         },
         validate,
       );
       if (answer !== validate) return;
       const outcome = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Merging {0}…", branch) },
-        () =>
-          mergeBranch(repo.fullName, {
+        async () => {
+          // Le membre sait déjà que cette commande est fusionnée : pas de seconde notification.
+          orders.markMergedHere(order.id);
+          const server = await api.post<OrderValidateResponse>(`/orders/${order.id}/validate`);
+          if (server.viaServer) return server;
+          const local = await mergeBranch(repo.fullName, {
             branch,
             base: repo.defaultBranch,
             title: order.title,
             body: `Commande n° ${order.number}.\n\n${order.summary ?? ""}`.trim(),
-          }),
+          });
+          await api.put(`/orders/${order.id}/pull-request`, { number: local.number, merged: local.merged });
+          return local;
+        },
       );
-      if (outcome.merged) orders.markMergedHere(order.id);
-      await api.put(`/orders/${order.id}/pull-request`, { number: outcome.number, merged: outcome.merged });
       await orders.refresh();
       if (outcome.merged) {
         const found = store.project(order.projectId);

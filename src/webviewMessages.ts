@@ -67,6 +67,7 @@ export interface ChatStrings {
   linkFolder: string;
   repoTitle: string;
   repoNone: string;
+  repoAppConnected: string;
   linkRepo: string;
   changeRepo: string;
   cloneRepo: string;
