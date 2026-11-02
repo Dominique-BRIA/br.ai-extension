@@ -242,7 +242,11 @@ export function Composer(props: Props) {
         <div className="reply-bar">
           <span className="codicon codicon-reply" aria-hidden="true" />
           <span className="reply-bar-text">
-            {strings.replyingTo.replace("{0}", authorName(replyTo.author, strings, myUserId))}
+            {replyTo.author.kind === "serveur"
+              ? strings.replyingToServeur
+              : replyTo.author.kind === "cuisinier"
+                ? strings.replyingToCuisinier
+                : strings.replyingTo.replace("{0}", authorName(replyTo.author, strings, myUserId))}
           </span>
           <button
             type="button"

@@ -39,9 +39,9 @@ export function authorLabel(author: MessageAuthor): string {
     case "former_member":
       return vscode.l10n.t("Former member");
     case "serveur":
-      return vscode.l10n.t("server agent");
+      return vscode.l10n.t("The server");
     case "cuisinier":
-      return vscode.l10n.t("cook agent");
+      return vscode.l10n.t("The cook");
   }
 }
 

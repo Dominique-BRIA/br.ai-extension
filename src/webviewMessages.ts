@@ -29,6 +29,8 @@ export interface ChatStrings {
   loading: string;
   reply: string;
   replyingTo: string;
+  replyingToServeur: string;
+  replyingToCuisinier: string;
   cancelReply: string;
   composerPlaceholder: string;
   composerHint: string;
