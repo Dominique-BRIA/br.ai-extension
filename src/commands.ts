@@ -541,6 +541,23 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       await orders.refresh();
       void vscode.window.showInformationMessage(vscode.l10n.t("{0} file(s) restored.", files.length));
     }),
+    command("bria.order.relay", async (node?: OrderNode) => {
+      if (node?.kind !== "order") return;
+      const relay = vscode.l10n.t("Pass it on");
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t("Pass order {0} on to another machine?", node.order.number),
+        {
+          modal: true,
+          detail: vscode.l10n.t(
+            "The cook finishes its current step, pushes its work to GitHub and leaves a handoff note. The next available machine resumes it.",
+          ),
+        },
+        relay,
+      );
+      if (answer !== relay) return;
+      await api.post(`/orders/${node.order.id}/relay`);
+      await orders.refresh();
+    }),
     command("bria.order.push", async (node?: OrderNode) => {
       if (node?.kind !== "order" || !node.order.branch) return;
       const { order } = node;

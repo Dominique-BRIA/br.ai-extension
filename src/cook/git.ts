@@ -75,6 +75,11 @@ export async function prepareBranch(root: string, branch: string, base: string):
   const status = await git(root, ["status", "--porcelain"]);
   if (status.code !== 0) return failed("Lecture de l'état du dépôt", status);
   if (status.stdout) {
+    // Déjà sur cette branche : c'est le travail interrompu de cette commande, le cuisinier le reprend.
+    const current = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    if (current.stdout === branch) {
+      return { ok: true, output: `Branche ${branch} reprise avec le travail en cours sur cette machine.` };
+    }
     return {
       ok: false,
       output:
@@ -84,13 +89,18 @@ export async function prepareBranch(root: string, branch: string, base: string):
   const fetch = await git(root, ["fetch", "origin", "--prune"], 180_000);
   if (fetch.code !== 0) return failed("Récupération depuis GitHub impossible", fetch);
 
+  const remote = await git(root, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]);
   const local = await git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]);
   if (local.code === 0) {
     const checkout = await git(root, ["checkout", branch]);
     if (checkout.code !== 0) return failed(`Passage sur ${branch} impossible`, checkout);
+    // Une autre machine a pu pousser la suite depuis : le relais repart de là.
+    if (remote.code === 0) {
+      const merge = await git(root, ["merge", "--ff-only", `origin/${branch}`]);
+      if (merge.code !== 0) return failed(`Mise à jour de ${branch} depuis GitHub impossible`, merge);
+    }
     return { ok: true, output: `Branche ${branch} reprise sur cette machine.` };
   }
-  const remote = await git(root, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]);
   if (remote.code === 0) {
     const checkout = await git(root, ["checkout", "-b", branch, "--track", `origin/${branch}`]);
     if (checkout.code !== 0) return failed(`Reprise de ${branch} impossible`, checkout);
@@ -111,9 +121,14 @@ export async function prepareBranch(root: string, branch: string, base: string):
 /**
  * Enregistre le travail du cuisinier dans un commit, au nom du membre (son identité Git, sans
  * mention de l'IA), puis pousse la branche : tout de suite, ou après son accord selon le réglage
- * « bria.pushMode ».
+ * « bria.pushMode ». `forcePush` sert au relais, que le membre vient de demander lui-même.
  */
-export async function saveBranch(root: string, branch: string, message: string): Promise<GitOutcome> {
+export async function saveBranch(
+  root: string,
+  branch: string,
+  message: string,
+  forcePush = false,
+): Promise<GitOutcome> {
   const current = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
   if (current.code !== 0) return failed("Lecture de la branche", current);
   if (current.stdout !== branch) {
@@ -143,7 +158,7 @@ export async function saveBranch(root: string, branch: string, message: string):
   const sha = (await git(root, ["rev-parse", "--short", "HEAD"])).stdout;
 
   const mode = vscode.workspace.getConfiguration("bria").get<PushMode>("pushMode", "ask");
-  if (mode === "ask") {
+  if (mode === "ask" && !forcePush) {
     const push = vscode.l10n.t("Push");
     const answer = await vscode.window.showInformationMessage(
       vscode.l10n.t("The cook saved its work in commit {0} on {1}. Push this branch to GitHub?", sha, branch),

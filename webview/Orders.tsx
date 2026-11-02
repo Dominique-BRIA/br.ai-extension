@@ -150,6 +150,18 @@ export function OrdersTab(props: TabProps) {
               <span className="codicon codicon-eye" aria-hidden="true" />
               {strings.viewStream}
             </button>
+            {current.status === "running" &&
+              current.branch &&
+              (canStop(current) || current.machine?.userId === props.myUserId) && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => post({ type: "orderAction", orderId: current.id, action: "relay" })}
+                >
+                  <span className="codicon codicon-arrow-swap" aria-hidden="true" />
+                  {strings.relayOrder}
+                </button>
+              )}
             {canStop(current) && (
               <button
                 type="button"
@@ -316,6 +328,12 @@ export function OrdersTab(props: TabProps) {
               <div className="order-details">
                 <p className="order-brief">{order.brief}</p>
                 {order.summary && <Markdown text={order.summary} diagramError={strings.diagramError} />}
+                {order.handoffNote && (
+                  <>
+                    <h4 className="subtitle">{strings.handoffTitle}</h4>
+                    <Markdown text={order.handoffNote} diagramError={strings.diagramError} />
+                  </>
+                )}
                 <ol className="steps">
                   {[...order.steps].reverse().map((step) => (
                     <li key={`${step.at}-${step.text}`} className={step.kind}>

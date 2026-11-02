@@ -7,6 +7,7 @@
 - Le travail non enregistré d'un membre n'est jamais touché : la commande s'arrête plutôt.
 - Le demandeur valide une commande : une pull request est ouverte et fusionnée avec son compte GitHub. Si GitHub refuse la fusion, elle reste ouverte et la raison s'affiche.
 - Après une fusion, les autres membres sont prévenus qu'une nouvelle version est disponible. S'ils acceptent, le dossier se met à jour et les nouvelles dépendances s'installent dans un terminal. Le travail non enregistré n'est jamais écrasé : le membre choisit quoi en faire.
+- Une commande en cours peut passer à une autre machine : le cuisinier pousse son travail et laisse une note de reprise, puis la machine suivante vérifie son environnement et continue.
 
 ## 0.5.1
 

@@ -74,6 +74,8 @@ export interface ChatStrings {
   orderNotPushed: string;
   orderPushed: string;
   orderMerged: string;
+  relayOrder: string;
+  handoffTitle: string;
   pushOrder: string;
   validateOrder: string;
   pullRequestLabel: string;
@@ -508,7 +510,7 @@ export type FromWebview =
   | { type: "attach"; pending: number }
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
-  | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" }
+  | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" | "relay" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */
   | { type: "openProjectFile"; path: string };

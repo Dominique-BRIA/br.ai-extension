@@ -106,6 +106,48 @@ describe("Git du cuisinier", () => {
     expect(readFileSync(join(other, "blog.md"), "utf8").replace(/\r\n/g, "\n")).toBe("# Blog\n");
   }, 30_000);
 
+  it("pousse sans demander quand le membre passe le relais", async () => {
+    const { remote, member } = setup();
+    settings.pushMode = "ask";
+    await prepareBranch(member, "bria/6-relais", "main");
+    writeFileSync(join(member, "relais.md"), "# Relais\n");
+    const result = saved((await saveBranch(member, "bria/6-relais", "Relais", true)).output);
+    expect(result.pushed).toBe(true);
+    expect(inRemote(remote, "rev-parse", "--short", "bria/6-relais")).toBe(result.commit);
+  }, 30_000);
+
+  it("reprend le travail interrompu de la commande sur la même machine", async () => {
+    const { member } = setup();
+    await prepareBranch(member, "bria/7-coupure", "main");
+    writeFileSync(join(member, "coupure.md"), "en cours\n");
+    const resumed = await prepareBranch(member, "bria/7-coupure", "main");
+    expect(resumed.ok).toBe(true);
+    expect(resumed.output).toContain("travail en cours");
+    expect(readFileSync(join(member, "coupure.md"), "utf8")).toBe("en cours\n");
+    // Mais une autre commande refuse toujours de toucher à ces fichiers.
+    expect((await prepareBranch(member, "bria/8-autre", "main")).ok).toBe(false);
+  }, 30_000);
+
+  it("rattrape sur la machine d'origine ce qu'une autre machine a poussé", async () => {
+    const { remote, member } = setup();
+    await prepareBranch(member, "bria/9-retour", "main");
+    writeFileSync(join(member, "a.md"), "a\n");
+    await saveBranch(member, "bria/9-retour", "Début");
+    run(member, "checkout", "main");
+
+    const other = join(remote, "..", "autre-machine");
+    run(join(remote, ".."), "clone", remote, other);
+    run(other, "config", "user.name", "Fatou");
+    run(other, "config", "user.email", "fatou@exemple.org");
+    await prepareBranch(other, "bria/9-retour", "main");
+    writeFileSync(join(other, "b.md"), "b\n");
+    await saveBranch(other, "bria/9-retour", "Suite");
+
+    const back = await prepareBranch(member, "bria/9-retour", "main");
+    expect(back.ok).toBe(true);
+    expect(readFileSync(join(member, "b.md"), "utf8").replace(/\r\n/g, "\n")).toBe("b\n");
+  }, 30_000);
+
   it("ne fait pas de commit vide", async () => {
     const { member } = setup();
     await prepareBranch(member, "bria/5-rien", "main");

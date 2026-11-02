@@ -429,5 +429,10 @@
   "{0} is already up to date.": "{0} est déjà à jour.",
   "{0} is updated. New dependencies are being installed in the terminal.": "{0} est à jour. Les nouvelles dépendances s'installent dans le terminal.",
   "{0} is updated.": "{0} est à jour.",
-  "Get the latest version": "Récupérer la dernière version"
+  "Get the latest version": "Récupérer la dernière version",
+  "Pass it on": "Passer le relais",
+  "Pass order {0} on to another machine?": "Passer la commande {0} à une autre machine ?",
+  "The cook finishes its current step, pushes its work to GitHub and leaves a handoff note. The next available machine resumes it.": "Le cuisinier termine son étape, pousse son travail sur GitHub et laisse une note de reprise. La prochaine machine disponible reprend la commande.",
+  "Pass on to another machine": "Passer à une autre machine",
+  "Handoff note": "Note de reprise"
 }

@@ -291,6 +291,12 @@
         "icon": "$(discard)"
       },
       {
+        "command": "bria.order.relay",
+        "title": "%command.order.relay%",
+        "category": "<br/>",
+        "icon": "$(arrow-swap)"
+      },
+      {
         "command": "bria.order.push",
         "title": "%command.order.push%",
         "category": "<br/>",
@@ -458,6 +464,10 @@
         },
         {
           "command": "bria.order.revert",
+          "when": "false"
+        },
+        {
+          "command": "bria.order.relay",
           "when": "false"
         },
         {

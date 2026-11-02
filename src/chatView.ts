@@ -1181,6 +1181,8 @@ function chatStrings(): ChatStrings {
     orderNotPushed: t("not pushed yet"),
     orderPushed: t("pushed"),
     orderMerged: t("merged"),
+    relayOrder: t("Pass on to another machine"),
+    handoffTitle: t("Handoff note"),
     pushOrder: t("Push the branch"),
     validateOrder: t("Validate and merge"),
     pullRequestLabel: t("Pull request {0}"),

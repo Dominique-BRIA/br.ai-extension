@@ -64,5 +64,6 @@
   "command.cloneRepo": "Cloner le dépôt du projet",
   "command.order.push": "Pousser la branche de la commande",
   "command.order.validate": "Valider la commande et fusionner",
-  "command.updateProject": "Récupérer la dernière version du projet"
+  "command.updateProject": "Récupérer la dernière version du projet",
+  "command.order.relay": "Passer la commande à une autre machine"
 }

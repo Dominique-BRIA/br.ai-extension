@@ -64,5 +64,6 @@
   "command.cloneRepo": "Clone the Project Repository",
   "command.order.push": "Push the Order's Branch",
   "command.order.validate": "Validate the Order and Merge",
-  "command.updateProject": "Get the Latest Version of the Project"
+  "command.updateProject": "Get the Latest Version of the Project",
+  "command.order.relay": "Pass the Order On to Another Machine"
 }

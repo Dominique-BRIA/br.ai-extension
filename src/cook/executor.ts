@@ -146,7 +146,7 @@ export class CookExecutor implements vscode.Disposable {
       if (mode === "plan") return { ok: true, output: "Mode Plan : la branche n'est pas créée." };
       return prepareBranch(root, branch, base);
     }
-    const { branch, message } = parsed.data as { branch: string; message: string };
+    const { branch, message, push } = parsed.data as { branch: string; message: string; push?: boolean };
     if (mode === "plan") {
       return {
         ok: true,
@@ -157,7 +157,7 @@ export class CookExecutor implements vscode.Disposable {
         }),
       };
     }
-    return saveBranch(root, branch, message);
+    return saveBranch(root, branch, message, push);
   }
 
   /** Chemin dans le projet ; un chemin extérieur exige l'accord explicite du membre. */
