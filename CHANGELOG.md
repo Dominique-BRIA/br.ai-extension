@@ -6,6 +6,7 @@
 - Chaque commande du cuisinier travaille sur sa propre branche, enregistre un commit au nom du membre, puis pousse la branche tout de suite ou après accord (réglage « bria.pushMode »).
 - Le travail non enregistré d'un membre n'est jamais touché : la commande s'arrête plutôt.
 - Le demandeur valide une commande : une pull request est ouverte et fusionnée avec son compte GitHub. Si GitHub refuse la fusion, elle reste ouverte et la raison s'affiche.
+- Après une fusion, les autres membres sont prévenus qu'une nouvelle version est disponible. S'ils acceptent, le dossier se met à jour et les nouvelles dépendances s'installent dans un terminal. Le travail non enregistré n'est jamais écrasé : le membre choisit quoi en faire.
 
 ## 0.5.1
 

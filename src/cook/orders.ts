@@ -13,6 +13,11 @@ export class OrdersStore implements vscode.Disposable {
   readonly #onDidFinish = new vscode.EventEmitter<Order>();
   /** Une commande vient de se terminer (terminée, non aboutie ou arrêtée). */
   readonly onDidFinish = this.#onDidFinish.event;
+  readonly #onDidMerge = new vscode.EventEmitter<Order>();
+  /** La branche d'une commande vient d'être fusionnée par un autre membre. */
+  readonly onDidMerge = this.#onDidMerge.event;
+  /** Commandes validées depuis cette machine : le membre sait déjà qu'elles sont fusionnées. */
+  readonly #mergedHere = new Set<string>();
   readonly #subscriptions: vscode.Disposable[];
   #projectId: string | undefined;
   #orders: Order[] = [];
@@ -31,6 +36,8 @@ export class OrdersStore implements vscode.Disposable {
         this.#known.set(event.order.id, event.order);
         if (previous?.status === "running" && event.order.status !== "running")
           this.#onDidFinish.fire(event.order);
+        if (event.order.merged && !previous?.merged && !this.#mergedHere.has(event.order.id))
+          this.#onDidMerge.fire(event.order);
         if (event.order.projectId !== this.#projectId) return;
         const index = this.#orders.findIndex((order) => order.id === event.order.id);
         if (index >= 0) this.#orders[index] = event.order;
@@ -45,6 +52,11 @@ export class OrdersStore implements vscode.Disposable {
 
   get orders(): Order[] {
     return this.#orders;
+  }
+
+  /** À appeler avant d'annoncer au serveur une fusion faite depuis cette machine. */
+  markMergedHere(orderId: string): void {
+    this.#mergedHere.add(orderId);
   }
 
   /** « Commande n° 3 » si elle est connue. */
@@ -78,6 +90,7 @@ export class OrdersStore implements vscode.Disposable {
     for (const subscription of this.#subscriptions) subscription.dispose();
     this.#onDidChange.dispose();
     this.#onDidFinish.dispose();
+    this.#onDidMerge.dispose();
   }
 
   #publish(): void {

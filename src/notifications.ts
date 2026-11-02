@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type { ChatViewProvider } from "./chatView";
 import type { Connection } from "./connection";
 import type { OrdersStore } from "./cook/orders";
+import type { ProjectFolders } from "./cook/projectFolders";
 import type { Session } from "./session";
 import type { WorkspaceStore } from "./workspaceStore";
 
@@ -75,5 +76,31 @@ export function watchFinishedOrders(
     const show =
       order.status === "done" ? vscode.window.showInformationMessage : vscode.window.showWarningMessage;
     if ((await show(text, open)) === open) await chat.open(order.projectId, true);
+  });
+}
+
+/** Une commande est fusionnée : propose de récupérer la nouvelle version sur cette machine. */
+export function watchMergedOrders(
+  orders: OrdersStore,
+  store: WorkspaceStore,
+  folders: ProjectFolders,
+): vscode.Disposable {
+  return orders.onDidMerge(async (order) => {
+    const found = store.project(order.projectId);
+    if (!found || !folders.get(order.projectId)) return;
+    const update = vscode.l10n.t("Update");
+    const answer = await vscode.window.showInformationMessage(
+      vscode.l10n.t(
+        "New version of {0} available: order {1} ({2}) is merged.",
+        found.project.name,
+        order.number,
+        order.title,
+      ),
+      update,
+      vscode.l10n.t("Later"),
+    );
+    if (answer === update) {
+      await vscode.commands.executeCommand("bria.updateProject", { kind: "project", ...found });
+    }
   });
 }

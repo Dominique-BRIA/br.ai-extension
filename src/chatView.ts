@@ -543,12 +543,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         return;
       case "linkFolder":
       case "linkRepo":
-      case "cloneRepo": {
+      case "cloneRepo":
+      case "updateProject": {
         const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
         const target = {
           linkFolder: "bria.linkFolder",
           linkRepo: "bria.linkRepo",
           cloneRepo: "bria.cloneRepo",
+          updateProject: "bria.updateProject",
         }[command];
         if (found) await vscode.commands.executeCommand(target, { kind: "project", ...found });
         return;
@@ -1175,6 +1177,7 @@ function chatStrings(): ChatStrings {
     linkRepo: t("Link a repository"),
     changeRepo: t("Change the repository"),
     cloneRepo: t("Clone on this machine"),
+    updateProject: t("Get the latest version"),
     orderNotPushed: t("not pushed yet"),
     orderPushed: t("pushed"),
     orderMerged: t("merged"),

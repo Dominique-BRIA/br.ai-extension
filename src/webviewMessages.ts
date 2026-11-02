@@ -70,6 +70,7 @@ export interface ChatStrings {
   linkRepo: string;
   changeRepo: string;
   cloneRepo: string;
+  updateProject: string;
   orderNotPushed: string;
   orderPushed: string;
   orderMerged: string;
@@ -455,6 +456,7 @@ export type WebviewCommand =
   | "linkFolder"
   | "linkRepo"
   | "cloneRepo"
+  | "updateProject"
   | "openChatInEditor"
   | "newNote"
   | "invite"

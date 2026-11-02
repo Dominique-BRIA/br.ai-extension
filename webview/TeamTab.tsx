@@ -140,8 +140,18 @@ export function TeamTab(props: Props) {
           )}
         </div>
       </article>
-      {(props.isChef || (props.repo && !props.folderLinked)) && (
+      {(props.isChef || props.repo) && (
         <div className="button-row">
+          {props.repo && props.folderLinked && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => post({ type: "command", command: "updateProject" })}
+            >
+              <span className="codicon codicon-cloud-download" aria-hidden="true" />
+              {strings.updateProject}
+            </button>
+          )}
           {props.repo && !props.folderLinked && (
             <button
               type="button"

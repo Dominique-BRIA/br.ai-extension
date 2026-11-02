@@ -244,6 +244,12 @@
         "icon": "$(github)"
       },
       {
+        "command": "bria.updateProject",
+        "title": "%command.updateProject%",
+        "category": "<br/>",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "bria.cloneRepo",
         "title": "%command.cloneRepo%",
         "category": "<br/>",
@@ -436,6 +442,10 @@
         },
         {
           "command": "bria.cloneRepo",
+          "when": "false"
+        },
+        {
+          "command": "bria.updateProject",
           "when": "false"
         },
         {

@@ -18,6 +18,7 @@ import { git } from "./cook/git";
 import type { OrderNode, OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
 import { ProposalReview } from "./cook/proposals";
+import { installCommands, updateToLatest } from "./cook/update";
 import { githubRepo, mergeBranch, parseRepo } from "./github";
 import type { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, type MemoryNode } from "./memoryView";
@@ -378,6 +379,92 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
         ),
       );
     }),
+    command("bria.updateProject", async (node?: TeamsNode) => {
+      if (node?.kind !== "project" || !node.project.repo) return;
+      const { project } = node;
+      const { defaultBranch } = node.project.repo;
+      const folder = folders.get(project.id);
+      if (!folder) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("No folder is linked to this project on this machine."),
+        );
+        return;
+      }
+      // Changer de branche sous les pieds du cuisinier casserait son travail.
+      if (executor.busyOrder) {
+        void vscode.window.showWarningMessage(
+          vscode.l10n.t("The cook is working on this machine. Update once the order is finished."),
+        );
+        return;
+      }
+      const run = (stash: boolean) =>
+        vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: vscode.l10n.t("Updating {0}…", project.name),
+          },
+          () => updateToLatest(folder, defaultBranch, stash),
+        );
+      let outcome = await run(false);
+      if (outcome.status === "dirty") {
+        const stash = vscode.l10n.t("Set aside and update");
+        const answer = await vscode.window.showWarningMessage(
+          vscode.l10n.t("The folder has unsaved changes. What should the cook do?"),
+          {
+            modal: true,
+            detail: vscode.l10n.t(
+              "Your changes can be set aside, then reapplied on the new version. You can also save them yourself and update later.",
+            ),
+          },
+          stash,
+        );
+        if (answer !== stash) return;
+        outcome = await run(true);
+      }
+      if (outcome.status === "failed") {
+        void vscode.window.showErrorMessage(vscode.l10n.t("Update failed: {0}", outcome.message));
+        return;
+      }
+      if (outcome.status === "other-branch") {
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t(
+            "{0} is up to date, but you stay on your branch {1}. Merge {0} into it when you are ready.",
+            defaultBranch,
+            outcome.branch,
+          ),
+        );
+        return;
+      }
+      if (outcome.status !== "updated") return;
+      const installs = installCommands(folder, outcome.changedFiles);
+      for (const { dir, command: install } of installs) {
+        const terminal = vscode.window.createTerminal({
+          name: vscode.l10n.t("<br/> · dependencies"),
+          cwd: join(folder, dir),
+        });
+        terminal.show(true);
+        terminal.sendText(install);
+      }
+      if (outcome.stashConflict) {
+        void vscode.window.showWarningMessage(
+          vscode.l10n.t(
+            "{0} is updated, but your changes conflict with the new version: resolve the conflicts. They also remain in git stash.",
+            project.name,
+          ),
+        );
+        return;
+      }
+      void vscode.window.showInformationMessage(
+        outcome.changedFiles.length === 0
+          ? vscode.l10n.t("{0} is already up to date.", project.name)
+          : installs.length > 0
+            ? vscode.l10n.t(
+                "{0} is updated. New dependencies are being installed in the terminal.",
+                project.name,
+              )
+            : vscode.l10n.t("{0} is updated.", project.name),
+      );
+    }),
     command("bria.unlinkFolder", async (node?: TeamsNode) => {
       if (node?.kind !== "project") return;
       await folders.set(node.project.id, undefined);
@@ -507,12 +594,19 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
             body: `Commande n° ${order.number}.\n\n${order.summary ?? ""}`.trim(),
           }),
       );
+      if (outcome.merged) orders.markMergedHere(order.id);
       await api.put(`/orders/${order.id}/pull-request`, { number: outcome.number, merged: outcome.merged });
       await orders.refresh();
       if (outcome.merged) {
-        void vscode.window.showInformationMessage(
-          vscode.l10n.t("Order {0} is merged into {1}.", order.number, repo.defaultBranch),
-        );
+        const found = store.project(order.projectId);
+        const update = vscode.l10n.t("Update");
+        const text = vscode.l10n.t("Order {0} is merged into {1}.", order.number, repo.defaultBranch);
+        const picked = await (found && folders.get(order.projectId)
+          ? vscode.window.showInformationMessage(text, update)
+          : vscode.window.showInformationMessage(text));
+        if (picked === update && found) {
+          await vscode.commands.executeCommand("bria.updateProject", { kind: "project", ...found });
+        }
         return;
       }
       const openIt = vscode.l10n.t("Open the pull request");

@@ -63,5 +63,6 @@
   "command.linkRepo": "Brancher un dépôt GitHub",
   "command.cloneRepo": "Cloner le dépôt du projet",
   "command.order.push": "Pousser la branche de la commande",
-  "command.order.validate": "Valider la commande et fusionner"
+  "command.order.validate": "Valider la commande et fusionner",
+  "command.updateProject": "Récupérer la dernière version du projet"
 }
