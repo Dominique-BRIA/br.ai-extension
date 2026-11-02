@@ -56,5 +56,10 @@
   "command.showCookTerminal": "Show What the Cook Runs",
   "command.openChatInEditor": "Open <br/>",
   "config.showCookTerminal": "Open the cook's terminal automatically when it runs a command on this machine.",
-  "command.memory.add": "New Note"
+  "command.memory.add": "New Note",
+  "config.pushMode": "When the cook has saved its work in a commit, on a project with a GitHub repository: push the branch right away, or ask first.",
+  "config.pushMode.ask": "Ask before pushing the branch.",
+  "config.pushMode.auto": "Push the branch right away.",
+  "command.linkRepo": "Link a GitHub Repository",
+  "command.cloneRepo": "Clone the Project Repository"
 }

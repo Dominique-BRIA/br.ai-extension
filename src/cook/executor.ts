@@ -1,11 +1,12 @@
 import { exec, spawn } from "node:child_process";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { cookTools, isCookTool } from "@br-ia/protocol";
+import { cookTools, gitTools, isCookTool, isGitTool } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import type { Connection } from "../connection";
 import type { Checkpoints } from "./checkpoints";
 import { ensureGitignored, envValues, maskSecrets, mergeEnv, type SecretValue } from "./envFile";
+import { prepareBranch, saveBranch } from "./git";
 import type { ProjectFolders } from "./projectFolders";
 import type { ProposalReview } from "./proposals";
 import { dangerousCommand, IGNORED_DIRECTORIES, resolveInProject } from "./safety";
@@ -106,6 +107,7 @@ export class CookExecutor implements vscode.Disposable {
   async #run(orderId: string, projectId: string, tool: string, rawInput: unknown): Promise<Outcome> {
     const root = this.folders.get(projectId);
     if (!root) return refused("Aucun dossier n'est associé à ce projet sur cette machine.");
+    if (isGitTool(tool)) return this.#git(root, tool, rawInput);
     if (!isCookTool(tool)) return refused(`Outil inconnu : ${tool}.`);
     const parsed = cookTools[tool].input.safeParse(rawInput);
     if (!parsed.success) return refused(`Paramètres invalides : ${parsed.error.message}`);
@@ -129,6 +131,33 @@ export class CookExecutor implements vscode.Disposable {
       case "write_env":
         return this.#writeEnv(orderId, projectId, root, mode, String(input.path));
     }
+  }
+
+  /**
+   * Branche et commit de la commande, demandés par le serveur autour du travail de l'IA. En
+   * mode Plan, rien n'est écrit : la branche n'est pas créée et rien n'est enregistré.
+   */
+  async #git(root: string, tool: keyof typeof gitTools, rawInput: unknown): Promise<Outcome> {
+    const parsed = gitTools[tool].input.safeParse(rawInput);
+    if (!parsed.success) return refused(`Paramètres invalides : ${parsed.error.message}`);
+    const mode = vscode.workspace.getConfiguration("bria").get<PermissionMode>("permissionMode", "manual");
+    if (tool === "git_prepare") {
+      const { branch, base } = parsed.data as { branch: string; base: string };
+      if (mode === "plan") return { ok: true, output: "Mode Plan : la branche n'est pas créée." };
+      return prepareBranch(root, branch, base);
+    }
+    const { branch, message } = parsed.data as { branch: string; message: string };
+    if (mode === "plan") {
+      return {
+        ok: true,
+        output: JSON.stringify({
+          commit: null,
+          pushed: false,
+          note: "Mode Plan : rien n'est enregistré dans Git.",
+        }),
+      };
+    }
+    return saveBranch(root, branch, message);
   }
 
   /** Chemin dans le projet ; un chemin extérieur exige l'accord explicite du membre. */
@@ -383,6 +412,16 @@ function describe(tool: string, input: Record<string, unknown>, outcome: Outcome
       return outcome.ok
         ? `${vscode.l10n.t("Wrote {0} from the vault", path)}`
         : `${vscode.l10n.t("Not changed")} ${path}${failed}`;
+    case "git_prepare":
+      return outcome.ok ? outcome.output : `${vscode.l10n.t("Branch not ready")}${failed}`;
+    case "git_save": {
+      if (!outcome.ok) return `${vscode.l10n.t("Work not saved in Git")}${failed}`;
+      try {
+        return String(JSON.parse(outcome.output).note);
+      } catch {
+        return outcome.output;
+      }
+    }
     default:
       return `${tool}${failed}`;
   }

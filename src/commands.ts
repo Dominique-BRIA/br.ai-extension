@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type {
   CreateInvitationResponse,
   Locale,
@@ -12,9 +14,11 @@ import type { ChatViewProvider } from "./chatView";
 import type { Connection } from "./connection";
 import type { Checkpoints } from "./cook/checkpoints";
 import type { CookExecutor, PermissionMode } from "./cook/executor";
+import { git } from "./cook/git";
 import type { OrderNode, OrdersStore } from "./cook/orders";
 import type { ProjectFolders } from "./cook/projectFolders";
 import { ProposalReview } from "./cook/proposals";
+import { githubRepo, parseRepo } from "./github";
 import type { MemoryStore } from "./memoryStore";
 import { MemoryDocumentProvider, type MemoryNode } from "./memoryView";
 import type { Session } from "./session";
@@ -254,9 +258,124 @@ export function registerCommands(deps: Deps): vscode.Disposable[] {
       });
       const folder = picked?.[0];
       if (!folder) return;
+      const repo = node.project.repo;
+      if (repo) {
+        const remote = parseRepo((await git(folder.fsPath, ["remote", "get-url", "origin"])).stdout);
+        if (remote?.toLowerCase() !== repo.fullName.toLowerCase()) {
+          const keep = vscode.l10n.t("Use it anyway");
+          const answer = await vscode.window.showWarningMessage(
+            vscode.l10n.t("This folder is not a clone of {0}, the repository of the project.", repo.fullName),
+            { modal: true },
+            keep,
+          );
+          if (answer !== keep) return;
+        }
+      }
       await folders.set(node.project.id, folder.fsPath);
       void vscode.window.showInformationMessage(
         vscode.l10n.t("The cook can now work on {0} in {1}.", node.project.name, folder.fsPath),
+      );
+    }),
+    command("bria.linkRepo", async (node?: TeamsNode) => {
+      if (node?.kind !== "project") return;
+      const { project } = node;
+      const folder = folders.get(project.id);
+      let suggestion = project.repo?.fullName ?? "";
+      if (!suggestion && folder) {
+        const remote = await git(folder, ["remote", "get-url", "origin"]);
+        suggestion = parseRepo(remote.stdout) ?? "";
+      }
+      const input = await vscode.window.showInputBox({
+        title: vscode.l10n.t("GitHub repository of {0}", project.name),
+        prompt: vscode.l10n.t("owner/name, or the address of the repository. Leave empty to unlink it."),
+        value: suggestion,
+        validateInput: (value) =>
+          !value.trim() || parseRepo(value) ? undefined : vscode.l10n.t("Expected format: owner/name"),
+      });
+      if (input === undefined) return;
+      if (!input.trim()) {
+        if (project.repo) await api.put(`/projects/${project.id}/repo`, { repo: null });
+        return;
+      }
+      const fullName = parseRepo(input);
+      if (!fullName) return;
+      let repo: Awaited<ReturnType<typeof githubRepo>>;
+      try {
+        repo = await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: vscode.l10n.t("Checking {0} on GitHub…", fullName),
+          },
+          () => githubRepo(fullName),
+        );
+      } catch (error) {
+        void vscode.window.showErrorMessage((error as Error).message);
+        return;
+      }
+      await api.put(`/projects/${project.id}/repo`, {
+        repo: { fullName: repo.fullName, defaultBranch: repo.defaultBranch },
+      });
+      if (folder) {
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t(
+            "{0} is linked to {1}. Each order of the cook will work on its own branch.",
+            repo.fullName,
+            project.name,
+          ),
+        );
+        return;
+      }
+      const clone = vscode.l10n.t("Clone it");
+      const answer = await vscode.window.showInformationMessage(
+        vscode.l10n.t(
+          "{0} is linked to {1}. Clone it on this machine so the cook can work on it?",
+          repo.fullName,
+          project.name,
+        ),
+        clone,
+      );
+      if (answer === clone)
+        await vscode.commands.executeCommand("bria.cloneRepo", { ...node, project: { ...project, repo } });
+    }),
+    command("bria.cloneRepo", async (node?: TeamsNode) => {
+      if (node?.kind !== "project" || !node.project.repo) return;
+      const { project } = node;
+      const repo = node.project.repo;
+      const picked = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: vscode.l10n.t("Clone here"),
+        title: vscode.l10n.t("Where to clone {0}?", repo.fullName),
+      });
+      const parent = picked?.[0]?.fsPath;
+      if (!parent) return;
+      const target = join(parent, repo.fullName.split("/")[1] ?? "depot");
+      if (existsSync(target)) {
+        void vscode.window.showErrorMessage(vscode.l10n.t("The folder {0} already exists.", target));
+        return;
+      }
+      const cloned = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: vscode.l10n.t("Cloning {0}…", repo.fullName),
+        },
+        () => git(parent, ["clone", `https://github.com/${repo.fullName}.git`, target], 600_000),
+      );
+      if (cloned.code !== 0) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("Cloning failed: {0}", (cloned.stderr || cloned.stdout).split("\n")[0] ?? ""),
+        );
+        return;
+      }
+      await folders.set(project.id, target);
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t(
+          "{0} is cloned in {1}. The cook can now work on {2}.",
+          repo.fullName,
+          target,
+          project.name,
+        ),
       );
     }),
     command("bria.unlinkFolder", async (node?: TeamsNode) => {

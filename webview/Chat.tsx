@@ -377,6 +377,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
           connected={connected}
           orders={state.orders}
           folderLinked={state.folderLinked}
+          repo={state.repo}
           strings={strings}
           locale={locale}
         />

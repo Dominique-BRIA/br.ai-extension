@@ -1,4 +1,4 @@
-import type { Order, SecretsResponse, TeamUsage } from "@br-ia/protocol";
+import type { Order, ProjectRepo, SecretsResponse, TeamUsage } from "@br-ia/protocol";
 import { useEffect, useState } from "react";
 import type { ChatMember, ChatStrings, TeamInvitation } from "../src/webviewMessages";
 import { formatRelative, initials } from "./format";
@@ -23,6 +23,7 @@ interface Props {
   connected: boolean;
   orders: Order[];
   folderLinked: boolean;
+  repo: ProjectRepo | null;
   strings: ChatStrings;
   locale: string;
 }
@@ -122,6 +123,47 @@ export function TeamTab(props: Props) {
           </article>
         );
       })}
+
+      <div className="section-head small">
+        <h3 className="subtitle">{strings.repoTitle}</h3>
+      </div>
+      <article className="person-row">
+        <span className="codicon codicon-github" aria-hidden="true" />
+        <div className="person-text">
+          {props.repo ? (
+            <>
+              <div className="person-name">{props.repo.fullName}</div>
+              <div className="meta">{props.repo.defaultBranch}</div>
+            </>
+          ) : (
+            <div className="meta">{strings.repoNone}</div>
+          )}
+        </div>
+      </article>
+      {(props.isChef || (props.repo && !props.folderLinked)) && (
+        <div className="button-row">
+          {props.repo && !props.folderLinked && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => post({ type: "command", command: "cloneRepo" })}
+            >
+              <span className="codicon codicon-repo-clone" aria-hidden="true" />
+              {strings.cloneRepo}
+            </button>
+          )}
+          {props.isChef && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => post({ type: "command", command: "linkRepo" })}
+            >
+              <span className="codicon codicon-github" aria-hidden="true" />
+              {props.repo ? strings.changeRepo : strings.linkRepo}
+            </button>
+          )}
+        </div>
+      )}
 
       <VaultSection
         vault={props.vault}

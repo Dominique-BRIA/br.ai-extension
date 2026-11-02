@@ -544,9 +544,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       case "toggleLending":
         await vscode.commands.executeCommand("bria.toggleLending");
         return;
-      case "linkFolder": {
+      case "linkFolder":
+      case "linkRepo":
+      case "cloneRepo": {
         const found = this.#projectId ? this.#sources.store.project(this.#projectId) : undefined;
-        if (found) await vscode.commands.executeCommand("bria.linkFolder", { kind: "project", ...found });
+        const target = {
+          linkFolder: "bria.linkFolder",
+          linkRepo: "bria.linkRepo",
+          cloneRepo: "bria.cloneRepo",
+        }[command];
+        if (found) await vscode.commands.executeCommand(target, { kind: "project", ...found });
         return;
       }
       case "leaveTeam":
@@ -984,6 +991,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       orders: orders.orders.filter((order) => order.projectId === found.project.id),
       revertable: this.#revertable,
       folderLinked: Boolean(folders.get(found.project.id)),
+      repo: found.project.repo,
       permissionMode: vscode.workspace
         .getConfiguration("bria")
         .get<PermissionMode>("permissionMode", "manual"),
@@ -1165,6 +1173,13 @@ function chatStrings(): ChatStrings {
     assignedNobody: t("Assigned to: cook, waiting for a machine"),
     noFolder: t("No folder is linked to this project on this machine."),
     linkFolder: t("Link a folder"),
+    repoTitle: t("GitHub repository"),
+    repoNone: t("No repository linked. The cook works in the folder without touching Git."),
+    linkRepo: t("Link a repository"),
+    changeRepo: t("Change the repository"),
+    cloneRepo: t("Clone on this machine"),
+    orderNotPushed: t("not pushed yet"),
+    orderPushed: t("pushed"),
     stopOrder: t("Stop"),
     revertOrder: t("Undo changes"),
     showTerminal: t("Terminal"),

@@ -56,5 +56,10 @@
   "command.showCookTerminal": "Voir ce que lance le cuisinier",
   "command.openChatInEditor": "Ouvrir <br/>",
   "config.showCookTerminal": "Ouvrir automatiquement le terminal du cuisinier quand il lance une commande sur cette machine.",
-  "command.memory.add": "Nouvelle note"
+  "command.memory.add": "Nouvelle note",
+  "config.pushMode": "Quand le cuisinier a enregistré son travail dans un commit, sur un projet qui a un dépôt GitHub : pousser la branche tout de suite, ou demander d'abord.",
+  "config.pushMode.ask": "Demander avant de pousser la branche.",
+  "config.pushMode.auto": "Pousser la branche tout de suite.",
+  "command.linkRepo": "Brancher un dépôt GitHub",
+  "command.cloneRepo": "Cloner le dépôt du projet"
 }

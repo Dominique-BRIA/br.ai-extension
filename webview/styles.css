@@ -2442,3 +2442,12 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
     transition: none;
   }
 }
+
+.order-item-git {
+  flex-wrap: wrap;
+}
+
+.order-item-branch {
+  font-family: var(--vscode-editor-font-family, monospace);
+  overflow-wrap: anywhere;
+}

@@ -10,6 +10,7 @@ import type {
   Notification,
   Order,
   OrderStatus,
+  ProjectRepo,
   SecretLogResponse,
   SecretsResponse,
   TeamUsage,
@@ -64,6 +65,13 @@ export interface ChatStrings {
   assignedNobody: string;
   noFolder: string;
   linkFolder: string;
+  repoTitle: string;
+  repoNone: string;
+  linkRepo: string;
+  changeRepo: string;
+  cloneRepo: string;
+  orderNotPushed: string;
+  orderPushed: string;
   stopOrder: string;
   revertOrder: string;
   showTerminal: string;
@@ -359,6 +367,8 @@ export type ChatViewState =
       revertable: string[];
       /** Un dossier est associé à ce projet sur cette machine. */
       folderLinked: boolean;
+      /** Dépôt GitHub branché au projet. */
+      repo: ProjectRepo | null;
       permissionMode: PermissionMode;
       /** Résumé « pendant votre absence », affiché en haut du chat jusqu'à ce qu'on le ferme. */
       catchUp: CatchUp | null;
@@ -439,6 +449,8 @@ export type WebviewCommand =
   | "openMemoryDocument"
   | "setPermissionMode"
   | "linkFolder"
+  | "linkRepo"
+  | "cloneRepo"
   | "openChatInEditor"
   | "newNote"
   | "invite"

@@ -191,6 +191,18 @@ export function OrdersTab(props: TabProps) {
               <span className={`pill status ${order.status}`}>{strings.orderStatus[order.status]}</span>
             </div>
             <h3 className="order-item-title">{order.title}</h3>
+            {order.branch && (
+              <div className="order-item-line order-item-git">
+                <span className="codicon codicon-git-branch" aria-hidden="true" />
+                <span className="order-item-branch">{order.branch}</span>
+                {order.commit && (
+                  <span>
+                    {" · "}
+                    {order.commit} · {order.pushed ? strings.orderPushed : strings.orderNotPushed}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="order-item-line">
               {FINISHED.includes(order.status) ? (
                 <>

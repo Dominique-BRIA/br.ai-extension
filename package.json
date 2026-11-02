@@ -3,7 +3,7 @@
   "displayName": "br",
   "description": "%description%",
   "icon": "media/logo.png",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "publisher": "br-ia",
   "license": "SEE LICENSE IN LICENSE",
@@ -238,6 +238,18 @@
         "icon": "$(folder)"
       },
       {
+        "command": "bria.linkRepo",
+        "title": "%command.linkRepo%",
+        "category": "<br/>",
+        "icon": "$(github)"
+      },
+      {
+        "command": "bria.cloneRepo",
+        "title": "%command.cloneRepo%",
+        "category": "<br/>",
+        "icon": "$(repo-clone)"
+      },
+      {
         "command": "bria.unlinkFolder",
         "title": "%command.unlinkFolder%",
         "category": "<br/>"
@@ -404,6 +416,14 @@
         },
         {
           "command": "bria.linkFolder",
+          "when": "false"
+        },
+        {
+          "command": "bria.linkRepo",
+          "when": "false"
+        },
+        {
+          "command": "bria.cloneRepo",
           "when": "false"
         },
         {
@@ -629,6 +649,11 @@
           "group": "2_folder@1"
         },
         {
+          "command": "bria.linkRepo",
+          "when": "view == bria.teams && viewItem =~ /^project\\.chef/",
+          "group": "2_folder@3"
+        },
+        {
           "command": "bria.unlinkFolder",
           "when": "view == bria.teams && viewItem =~ /^project\\..*\\.linked$/",
           "group": "2_folder@2"
@@ -679,6 +704,19 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "%config.notifyMentions%"
+        },
+        "bria.pushMode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "auto"
+          ],
+          "enumDescriptions": [
+            "%config.pushMode.ask%",
+            "%config.pushMode.auto%"
+          ],
+          "default": "ask",
+          "markdownDescription": "%config.pushMode%"
         },
         "bria.permissionMode": {
           "type": "string",
