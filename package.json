@@ -3,7 +3,7 @@
   "displayName": "br",
   "description": "%description%",
   "icon": "media/logo.png",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "publisher": "br-ia",
   "license": "SEE LICENSE IN LICENSE",
@@ -662,7 +662,6 @@
         },
         {
           "command": "bria.openChatInEditor",
-          "when": "bria.signedIn",
           "group": "navigation@100"
         }
       ]

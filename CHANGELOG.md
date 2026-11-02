@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.5.1
+
+- Le bouton \<br/\> reste visible en haut à droite de l'éditeur, même sans être connecté.
+
 ## 0.5.0
 
 Première version publiée, pour la bêta privée sur invitation.
