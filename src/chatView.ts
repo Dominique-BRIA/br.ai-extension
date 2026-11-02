@@ -34,6 +34,7 @@ import type { ProjectFolders } from "./cook/projectFolders";
 import { LocalMemory } from "./localMemory";
 import type { MemoryStore } from "./memoryStore";
 import type { NotificationsStore } from "./notificationsStore";
+import { serverHttpUrl } from "./server";
 import type { Session } from "./session";
 import type {
   CatchUp,
@@ -1007,7 +1008,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       lendMachine: settings.get<boolean>("lendMachine", false),
       showCookTerminal: settings.get<boolean>("showCookTerminal", true),
       notifyMentions: settings.get<boolean>("notifyMentions", true),
-      serverUrl: settings.get<string>("serverUrl", ""),
+      serverUrl: serverHttpUrl(),
       version: String(this.context.extension.packageJSON.version),
       localMemoryFile: LocalMemory.file,
     };

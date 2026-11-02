@@ -1,12 +1,24 @@
 import { WS_PATH } from "@br-ia/protocol";
 import * as vscode from "vscode";
 
-const DEFAULT_SERVER = "http://127.0.0.1:4000";
+const ONLINE_SERVER = "https://api.br.garah.me";
+const DEVELOPMENT_SERVER = "http://127.0.0.1:4000";
 
-/** Adresse HTTP du serveur, d'après le réglage `bria.serverUrl`. */
+let developing = false;
+
+/** Lancée en développement, l'extension vise par défaut le serveur local, jamais la base en ligne. */
+export function useDevelopmentServer(enabled: boolean): void {
+  developing = enabled;
+}
+
+/**
+ * Adresse HTTP du serveur : celle choisie par l'utilisateur dans ses réglages, sinon celle par
+ * défaut. Le réglage d'un dossier ouvert est ignoré : un dépôt ne doit pas pouvoir détourner la
+ * session vers un autre serveur.
+ */
 export function serverHttpUrl(): string {
-  const raw = vscode.workspace.getConfiguration("bria").get<string>("serverUrl", DEFAULT_SERVER).trim();
-  const url = new URL(raw || DEFAULT_SERVER);
+  const chosen = vscode.workspace.getConfiguration("bria").inspect<string>("serverUrl")?.globalValue?.trim();
+  const url = new URL(chosen || (developing ? DEVELOPMENT_SERVER : ONLINE_SERVER));
   // Accepte aussi une ancienne valeur en ws:// (lot 0).
   if (url.protocol === "ws:") url.protocol = "http:";
   if (url.protocol === "wss:") url.protocol = "https:";
