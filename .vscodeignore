@@ -6,4 +6,5 @@
 !package.nls*.json
 !README.md
 !LICENSE
+!CHANGELOG.md
 dist/**/*.map

@@ -1,58 +1,60 @@
-# \<br/\> — extension VS Code
+# Retour à la ligne (\<br/\>)
 
-L'extension \<br/\> : le chat d'équipe dans la barre latérale, et l'exécution du travail de l'agent cuisinier sur cette machine.
+**Redonner un sens au travail d'équipe.**
 
-Elle fonctionne dans VS Code, Cursor et Windsurf (VS Code 1.95 ou plus).
+\<br/\> est un chat d'équipe dans VS Code, où l'IA suit vos discussions, note vos décisions, aide à arbitrer vos désaccords et réalise le travail demandé sur la machine d'un membre.
 
-## Démarrer en local
+> \<br/\> est en **bêta privée, sur invitation**. Demandez votre invitation sur [br.garah.me](https://br.garah.me).
 
-L'extension utilise le protocole partagé du dépôt backend, qui doit être cloné à côté :
+## Ce que fait \<br/\>
 
-```
-br-ia/
-├─ backend/     https://github.com/Dominique-BRIA/br.ai-backend
-└─ extension/   ce dépôt
-```
+- **Un chat par projet** : discutez en équipe directement dans l'éditeur, en direct ou en différé.
+- **Le serveur** : un agent qui suit la conversation, tient la mémoire du projet (décisions, questions ouvertes, tâches, compromis) et répond quand on le sollicite.
+- **Le cuisinier** : un agent qui réalise les commandes (code, documents) dans le dossier du projet, et vous montre ce qu'il fait dans un terminal dédié.
+- **Le coffre de secrets** : partagez les secrets d'un projet sans les envoyer à l'IA, qui n'en voit que les noms.
+- **Une mémoire locale** : vos préférences de travail restent notées pour les prochaines commandes.
 
-1. Démarrer le serveur (voir le README du backend).
-2. Dans ce dossier :
+## Démarrer
 
-   ```sh
-   npm install
-   npm run build
-   ```
+1. Installez l'extension, puis ouvrez le panneau \<br/\>.
+2. Saisissez votre adresse e-mail et votre code d'invitation, puis le code reçu par e-mail.
+3. Créez une équipe et un projet, ou rejoignez ceux de vos collègues avec leur clé d'invitation.
 
-3. Ouvrir ce dossier dans VS Code et lancer **Lancer l'extension** (F5). Une nouvelle fenêtre s'ouvre avec <br/> dans la barre d'activité ; elle se connecte au serveur au démarrage.
+## Vous gardez la main sur votre machine
 
-L'adresse du serveur se règle avec le paramètre `bria.serverUrl` : par défaut `https://br-ia-api-a8gwhdfxccd6cham.germanywestcentral-01.azurewebsites.net`, et `http://127.0.0.1:4000` quand l'extension est lancée en développement.
+Le cuisinier peut lire et écrire des fichiers et lancer des commandes, dans le dossier du projet. Cela n'arrive que si vous l'autorisez :
 
-En développement, le serveur accepte le code d'invitation `BETA-DEV` et écrit les codes de connexion dans son journal.
+- le prêt de votre machine à l'équipe est **désactivé par défaut** ;
+- le mode de permission est **manuel par défaut**, et vous pouvez le changer à côté du bouton d'envoi ;
+- le cuisinier peut se tromper : gardez vos projets sous contrôle de version et relisez ses changements.
 
-### Essayer à deux comptes sur la même machine
+## Vos données
 
-Une seconde fenêtre de test doit avoir son propre profil VS Code, sinon elle partage la session de la première :
+Les messages et le contenu lu par les agents sont envoyés à notre serveur et à des fournisseurs d'IA. Pendant la bêta, nous utilisons des offres gratuites, dont certaines peuvent réutiliser ces contenus : **n'envoyez pas d'informations sensibles dans le chat**.
 
-```powershell
-code --user-data-dir D:\Temp\bria-profil-2 --extensionDevelopmentPath D:\Dev\br-ia\extension
-```
+- [Politique de confidentialité](https://br.garah.me/confidentialite)
+- [Conditions d'utilisation](https://br.garah.me/conditions)
+- [Mentions légales](https://br.garah.me/mentions-legales)
 
+Une question ou un problème ? Utilisez la commande « Envoyer un retour » dans l'extension, ou écrivez à d.bria00@gmail.com.
 
-## Commandes
+---
 
-| Commande            | Rôle                                                     |
-| ------------------- | -------------------------------------------------------- |
-| `npm run build`     | Construit l'extension et la webview dans `dist/`         |
-| `npm run watch`     | Reconstruit à chaque modification                        |
-| `npm test`          | Tests                                                    |
-| `npm run typecheck` | Vérification des types                                   |
-| `npm run check`     | Vérification du style (Biome) ; `npm run format` corrige |
-| `npm run package`   | Crée le fichier `.vsix` à installer                      |
+# Retour à la ligne (\<br/\>) — English
 
-## Organisation
+**Giving meaning back to teamwork.**
 
-| Dossier                      | Contenu                                                               |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `src/`                       | Code de l'extension : connexion au serveur, barre d'état, vue du chat |
-| `webview/`                   | Interface du chat (React), aux couleurs du thème VS Code              |
-| `l10n/`, `package.nls*.json` | Textes en anglais et en français                                      |
-| `media/`                     | Icône de la barre d'activité                                          |
+\<br/\> is a team chat inside VS Code where AI follows your discussions, keeps track of your decisions, helps settle disagreements and carries out the requested work on a member's machine.
+
+> \<br/\> is in **private beta, invitation-only**. Request your invitation at [br.garah.me/en](https://br.garah.me/en).
+
+- **A chat for each project**, live or asynchronous, right in your editor.
+- **The server**: an agent that follows the conversation, keeps the project memory and answers when asked.
+- **The cook**: an agent that carries out orders (code, documents) in the project folder and shows what it does in a dedicated terminal.
+- **The secrets vault**: share a project's secrets without sending them to the AI, which only sees their names.
+
+**You stay in control of your machine.** Lending your machine to the team is **off by default**, and the permission mode is **manual by default**. The cook can make mistakes: keep your projects under version control and review its changes.
+
+**Your data.** Messages and the content read by the agents are sent to our server and to AI providers. During the beta we use free tiers, some of which may reuse this content: **do not share sensitive information in the chat**.
+
+[Privacy policy](https://br.garah.me/en/privacy) · [Terms of use](https://br.garah.me/en/terms) · [Legal notice](https://br.garah.me/en/legal-notice)

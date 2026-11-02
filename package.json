@@ -1,12 +1,30 @@
 {
   "name": "br-ia",
-  "displayName": "<br/>",
+  "displayName": "Retour à la ligne",
   "description": "%description%",
   "icon": "media/logo.png",
   "version": "0.5.0",
   "private": true,
   "publisher": "br-ia",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
+  "preview": true,
+  "pricing": "Free",
+  "homepage": "https://br.garah.me",
+  "bugs": {
+    "email": "d.bria00@gmail.com"
+  },
+  "qna": false,
+  "galleryBanner": {
+    "color": "#141414",
+    "theme": "dark"
+  },
+  "keywords": [
+    "team chat",
+    "ai",
+    "agent",
+    "collaboration",
+    "chat d'équipe"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Dominique-BRIA/br.ai-extension.git"
