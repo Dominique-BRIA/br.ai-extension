@@ -4,6 +4,7 @@
 
 - L'inscription est ouverte à tous, sans code d'invitation.
 - Le code d'invitation donne des crédits d'IA à l'équipe : le chef le saisit dans l'onglet Équipe.
+- Les messages des IA prennent l'orange du logo, pour les repérer d'un coup d'œil.
 
 ## 0.6.0
 

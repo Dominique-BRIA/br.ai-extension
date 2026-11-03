@@ -1,6 +1,7 @@
 /*
  * Panneau de <br/>, d'après la maquette validée par Dominique.
- * Couleur principale : le bleu du logo ; l'orange du logo signale l'attente et les alertes.
+ * Couleur principale : le bleu du logo ; l'orange du logo signale l'attente, les alertes et les
+ * messages des IA.
  * Fonds, textes et bordures viennent du thème actif de VS Code, pour suivre les thèmes clairs et sombres.
  */
 
@@ -9,6 +10,9 @@
   --bria-accent-strong: #1860a0;
   --bria-on-accent: #ffffff;
   --bria-warm: #faa03a;
+  /* La boule orange du logo : fonds et bordures des messages des IA, et leur texte coloré. */
+  --bria-ai: #faa03a;
+  --bria-ai-text: #faa03a;
   --bria-success: #3fb950;
   --bria-danger: var(--vscode-errorForeground, #f14c4c);
   --surface: var(--vscode-sideBar-background, var(--vscode-editor-background));
@@ -23,6 +27,9 @@ body.vscode-light {
   --bria-accent: #1860a0;
   --bria-accent-strong: #1860a0;
   --bria-warm: #b45f06;
+  --bria-ai: #f29430;
+  /* Plus foncé sur fond clair, pour rester lisible. */
+  --bria-ai-text: #b45f06;
   --bria-success: #1a7f37;
 }
 
@@ -835,9 +842,13 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 }
 
 .initials.agent {
-  color: var(--bria-accent);
-  border-color: color-mix(in srgb, var(--bria-accent) 45%, transparent);
-  background: color-mix(in srgb, var(--bria-accent) 12%, transparent);
+  color: var(--bria-ai-text);
+  border-color: color-mix(in srgb, var(--bria-ai) 55%, transparent);
+  background: color-mix(in srgb, var(--bria-ai) 14%, transparent);
+}
+
+.message.agent .author {
+  color: var(--bria-ai-text);
 }
 
 .author {
@@ -846,9 +857,9 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 
 .agent-label {
   padding: 0 5px;
-  border: 1px solid color-mix(in srgb, var(--bria-accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bria-ai) 55%, transparent);
   border-radius: 4px;
-  color: var(--bria-accent);
+  color: var(--bria-ai-text);
   font-family: var(--vscode-editor-font-family);
   font-size: 0.75em;
 }
@@ -879,8 +890,19 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
   color: var(--bria-on-accent);
 }
 
+.message.agent .bubble {
+  border-color: color-mix(in srgb, var(--bria-ai) 50%, transparent);
+  background: color-mix(in srgb, var(--bria-ai) 10%, var(--card));
+}
+
 .message.mentions-me .bubble {
   border-color: var(--bria-warm);
+}
+
+/* Une IA qui s'adresse au membre : la bordure orange s'affirme. */
+.message.agent.mentions-me .bubble {
+  border-color: var(--bria-ai);
+  border-width: 2px;
 }
 
 .message.highlight .bubble {
