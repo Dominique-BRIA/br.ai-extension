@@ -194,7 +194,7 @@ export function TeamTab(props: Props) {
         </h3>
       </div>
       <article className="person-row">
-        <span className="agent-icon">
+        <span className="agent-icon ai">
           <span className="codicon codicon-comment-discussion" aria-hidden="true" />
         </span>
         <div className="person-text">
@@ -209,7 +209,7 @@ export function TeamTab(props: Props) {
         </span>
       </article>
       <article className="person-row">
-        <span className="agent-icon">
+        <span className="agent-icon ai">
           <span className="codicon codicon-tools" aria-hidden="true" />
         </span>
         <div className="person-text">

@@ -4,7 +4,7 @@
 
 - L'inscription est ouverte à tous, sans code d'invitation.
 - Le code d'invitation donne des crédits d'IA à l'équipe : le chef le saisit dans l'onglet Équipe.
-- Les messages des IA prennent l'orange du logo, pour les repérer d'un coup d'œil.
+- Nouvelles couleurs des messages : bleu ardoise pour les vôtres, gris anthracite pour ceux des collègues, vert émeraude très sombre pour les IA.
 
 ## 0.6.0
 

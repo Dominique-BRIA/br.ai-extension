@@ -1,7 +1,8 @@
 /*
  * Panneau de <br/>, d'après la maquette validée par Dominique.
- * Couleur principale : le bleu du logo ; l'orange du logo signale l'attente, les alertes et les
- * messages des IA.
+ * Couleur principale : le bleu du logo ; l'orange du logo signale l'attente et les alertes.
+ * Messages : bleu ardoise pour les siens, gris anthracite translucide pour ceux des collègues,
+ * vert émeraude très sombre pour les IA.
  * Fonds, textes et bordures viennent du thème actif de VS Code, pour suivre les thèmes clairs et sombres.
  */
 
@@ -10,9 +11,16 @@
   --bria-accent-strong: #1860a0;
   --bria-on-accent: #ffffff;
   --bria-warm: #faa03a;
-  /* La boule orange du logo : fonds et bordures des messages des IA, et leur texte coloré. */
-  --bria-ai: #faa03a;
-  --bria-ai-text: #faa03a;
+  /* Messages envoyés : bleu ardoise, désaturé. */
+  --bria-sent: #2e4560;
+  --bria-on-sent: #eef3f8;
+  /* Messages reçus : gris anthracite, légèrement translucide sur le fond. */
+  --bria-received: rgba(255, 255, 255, 0.05);
+  --bria-received-border: rgba(255, 255, 255, 0.09);
+  /* Messages des IA : vert émeraude très sombre ; nom et initiales plus clairs, pour rester lisibles. */
+  --bria-ai: #0e2e24;
+  --bria-ai-border: #1f5a45;
+  --bria-ai-text: #52c49a;
   --bria-success: #3fb950;
   --bria-danger: var(--vscode-errorForeground, #f14c4c);
   --surface: var(--vscode-sideBar-background, var(--vscode-editor-background));
@@ -27,9 +35,13 @@ body.vscode-light {
   --bria-accent: #1860a0;
   --bria-accent-strong: #1860a0;
   --bria-warm: #b45f06;
-  --bria-ai: #f29430;
-  /* Plus foncé sur fond clair, pour rester lisible. */
-  --bria-ai-text: #b45f06;
+  --bria-sent: #3e5a78;
+  --bria-on-sent: #ffffff;
+  --bria-received: rgba(0, 0, 0, 0.04);
+  --bria-received-border: rgba(0, 0, 0, 0.1);
+  --bria-ai: #e2f2eb;
+  --bria-ai-border: #9cd1bb;
+  --bria-ai-text: #17694c;
   --bria-success: #1a7f37;
 }
 
@@ -843,8 +855,8 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 
 .initials.agent {
   color: var(--bria-ai-text);
-  border-color: color-mix(in srgb, var(--bria-ai) 55%, transparent);
-  background: color-mix(in srgb, var(--bria-ai) 14%, transparent);
+  border-color: var(--bria-ai-border);
+  background: var(--bria-ai);
 }
 
 .message.agent .author {
@@ -857,7 +869,7 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 
 .agent-label {
   padding: 0 5px;
-  border: 1px solid color-mix(in srgb, var(--bria-ai) 55%, transparent);
+  border: 1px solid var(--bria-ai-border);
   border-radius: 4px;
   color: var(--bria-ai-text);
   font-family: var(--vscode-editor-font-family);
@@ -872,36 +884,36 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 .bubble {
   max-width: 100%;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--bria-received-border);
   border-radius: var(--radius-card);
-  background: var(--card);
+  background: var(--bria-received);
   overflow-wrap: anywhere;
 }
 
 .message.mine .bubble {
   max-width: 85%;
   border-color: transparent;
-  color: var(--bria-on-accent);
-  background: var(--bria-accent-strong);
+  color: var(--bria-on-sent);
+  background: var(--bria-sent);
 }
 
 .message.mine .bubble a,
 .message.mine .bubble .quoted-author {
-  color: var(--bria-on-accent);
+  color: var(--bria-on-sent);
 }
 
 .message.agent .bubble {
-  border-color: color-mix(in srgb, var(--bria-ai) 50%, transparent);
-  background: color-mix(in srgb, var(--bria-ai) 10%, var(--card));
+  border-color: var(--bria-ai-border);
+  background: var(--bria-ai);
 }
 
 .message.mentions-me .bubble {
   border-color: var(--bria-warm);
 }
 
-/* Une IA qui s'adresse au membre : la bordure orange s'affirme. */
+/* Une IA qui s'adresse au membre : la bordure s'affirme. */
 .message.agent.mentions-me .bubble {
-  border-color: var(--bria-ai);
+  border-color: var(--bria-ai-text);
   border-width: 2px;
 }
 
@@ -955,7 +967,7 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 }
 
 .message.mine .quoted {
-  border-left-color: var(--bria-on-accent);
+  border-left-color: var(--bria-on-sent);
   background: color-mix(in srgb, #000000 18%, transparent);
 }
 
@@ -974,7 +986,7 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 }
 
 .message.mine .quoted-text {
-  color: color-mix(in srgb, var(--bria-on-accent) 80%, transparent);
+  color: color-mix(in srgb, var(--bria-on-sent) 80%, transparent);
 }
 
 /* Rappel de la commande en cours, en haut du chat */
@@ -1240,6 +1252,11 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
   border-radius: 50%;
   color: var(--bria-warm);
   background: color-mix(in srgb, var(--bria-warm) 15%, transparent);
+}
+
+.agent-icon.ai {
+  color: var(--bria-ai-text);
+  background: var(--bria-ai);
 }
 
 .agent-icon.accent {
