@@ -42,6 +42,7 @@ import type {
   ChatViewState,
   FromWebview,
   HomeForm,
+  OutgoingMessage,
   PanelSettings,
   TeamInvitation,
   ToWebview,
@@ -88,6 +89,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   #panel: vscode.WebviewPanel | undefined;
   #projectId: string | undefined;
   #messages: Message[] = [];
+  /** Messages partis du panneau, en attente du serveur (avec de quoi les renvoyer). */
+  #outgoing: (OutgoingMessage & { replyToId?: string; mentions: string[] })[] = [];
   #hasMore = false;
   #loadingOlder = false;
   #revertable: string[] = [];
@@ -135,6 +138,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       session.onDidChange((user) => {
         if (!user) {
           this.#messages = [];
+          this.#outgoing = [];
           this.#invitations.clear();
           this.#vaults.clear();
           this.#usages.clear();
@@ -157,6 +161,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   async open(projectId: string | undefined, reveal = false): Promise<void> {
     this.#projectId = projectId;
     this.#messages = [];
+    this.#outgoing = [];
     this.#hasMore = false;
     this.#catchUp = null;
     await this.context.workspaceState.update(OPEN_PROJECT_KEY, projectId);
@@ -478,8 +483,30 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           this.#sources.store.refresh(),
         ]);
         return;
-      case "send":
-        await this.#send(message.body, message.replyToId, message.mentions, message.attachmentIds);
+      case "send": {
+        const replied = this.#messages.find((candidate) => candidate.id === message.replyToId);
+        this.#outgoing.push({
+          clientId: message.clientId,
+          body: message.body,
+          replyTo: replied
+            ? { id: replied.id, author: replied.author, excerpt: replied.body.slice(0, 140) }
+            : null,
+          attachments: message.attachments,
+          createdAt: new Date().toISOString(),
+          status: "sending",
+          replyToId: message.replyToId,
+          mentions: message.mentions,
+        });
+        // Pas d'attente : le membre peut écrire le message suivant pendant que celui-ci part.
+        void this.#send(message.clientId);
+        return;
+      }
+      case "retrySend":
+        void this.#send(message.clientId);
+        return;
+      case "discardSend":
+        this.#outgoing = this.#outgoing.filter((outgoing) => outgoing.clientId !== message.clientId);
+        this.#post();
         return;
       case "attach":
         await this.#attach(message.pending);
@@ -904,30 +931,44 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
   }
 
-  async #send(
-    body: string,
-    replyToId: string | undefined,
-    mentions: string[],
-    attachmentIds: string[],
-  ): Promise<void> {
+  /** Envoie un message en attente ; en cas d'échec, il reste affiché « non envoyé ». */
+  async #send(clientId: string): Promise<void> {
     const projectId = this.#projectId;
-    if (!projectId) return;
+    const outgoing = this.#outgoing.find((candidate) => candidate.clientId === clientId);
+    if (!projectId || !outgoing) return;
+    outgoing.status = "sending";
+    this.#post();
     try {
       const { message } = await this.#sources.api.post<{ message: Message }>(
         `/projects/${projectId}/messages`,
-        { body, replyToId, mentions, attachmentIds },
+        {
+          body: outgoing.body,
+          replyToId: outgoing.replyToId,
+          mentions: outgoing.mentions,
+          attachmentIds: outgoing.attachments.map((attachment) => attachment.id),
+        },
       );
-      this.#append(message);
-      this.#postRaw({ type: "sendResult", ok: true });
-    } catch (error) {
-      this.#postRaw({ type: "sendResult", ok: false });
-      this.#reportError(error);
+      this.#outgoing = this.#outgoing.filter((candidate) => candidate.clientId !== clientId);
+      if (this.#projectId === projectId) this.#append(message);
+      this.#post();
+    } catch {
+      // Le message reste dans le fil, « non envoyé », avec Réessayer et Supprimer.
+      outgoing.status = "failed";
+      this.#post();
     }
   }
 
   /** Ajoute un message s'il n'est pas déjà là (il peut arriver par l'API et par le temps réel). */
   #append(message: Message): void {
     if (this.#messages.some((existing) => existing.id === message.id)) return;
+    // Le temps réel peut livrer le message avant la réponse de l'envoi : on retire son double en attente.
+    const mine = message.author.kind === "member" && message.author.userId === this.#sources.session.user?.id;
+    if (mine) {
+      const index = this.#outgoing.findIndex(
+        (outgoing) => outgoing.status === "sending" && outgoing.body === message.body,
+      );
+      if (index >= 0) this.#outgoing.splice(index, 1);
+    }
     this.#messages = [...this.#messages, message];
     this.#post();
   }
@@ -980,6 +1021,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       })),
       onlineCount: found.team.members.filter((member) => member.online).length,
       messages: this.#messages,
+      outgoing: this.#outgoing.map(({ replyToId: _replyTo, mentions: _mentions, ...shown }) => shown),
       hasMore: this.#hasMore,
       loadingOlder: this.#loadingOlder,
       notes: this.#notes(),
@@ -1123,6 +1165,11 @@ function chatStrings(): ChatStrings {
     connecting: t("Reconnecting to the server… Messages will arrive once connected."),
     disconnected: t("Not connected to the server."),
     connect: t("Connect"),
+    messageSending: t("Sending…"),
+    messageSent: t("Sent"),
+    messageFailed: t("Not sent"),
+    retrySend: t("Retry"),
+    discardSend: t("Delete"),
     showLog: t("Show log"),
     loadOlder: t("Load older messages"),
     loading: t("Loading…"),

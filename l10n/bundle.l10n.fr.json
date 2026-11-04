@@ -438,5 +438,9 @@
   "GitHub application connected": "application GitHub connectée",
   "INVITATION OR PROMO CODE": "CODE D'INVITATION OU PROMO",
   "No AI credits yet. Enter your invitation code to turn on the server and the cook, or request one at br.garah.me.": "Pas encore de crédits d'IA. Saisissez votre code d'invitation pour activer le serveur et le cuisinier, ou demandez-en un sur br.garah.me.",
-  "No AI credits yet. The team lead can enter an invitation code.": "Pas encore de crédits d'IA. Le chef peut saisir un code d'invitation."
+  "No AI credits yet. The team lead can enter an invitation code.": "Pas encore de crédits d'IA. Le chef peut saisir un code d'invitation.",
+  "Sending…": "Envoi…",
+  "Sent": "Envoyé",
+  "Not sent": "Non envoyé",
+  "Retry": "Réessayer"
 }

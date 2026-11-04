@@ -15,7 +15,8 @@ interface Props {
   strings: ChatStrings;
   locale: string;
   /** Incrémenté par le parent quand l'envoi a réussi. */
-  sentCount: number;
+  /** Un message est en train de partir : le bouton d'envoi tourne. */
+  sending: boolean;
   permissionMode: PermissionMode;
 }
 
@@ -109,7 +110,6 @@ export function Composer(props: Props) {
   const [text, setText] = useState(() => loadDraft(projectId));
   const [cursor, setCursor] = useState(0);
   const [selected, setSelected] = useState(0);
-  const [sending, setSending] = useState(false);
   /** Fichiers déjà envoyés au serveur, qui partiront avec le prochain message. */
   const [pending, setPending] = useState<Attachment[]>([]);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -121,16 +121,6 @@ export function Composer(props: Props) {
   }, [projectId]);
 
   useEffect(() => saveDraft(projectId, text), [projectId, text]);
-
-  // Envoi réussi : on vide la zone. En cas d'échec, le brouillon reste.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: réagit seulement au compteur d'envois.
-  useEffect(() => {
-    if (props.sentCount === 0) return;
-    setText("");
-    setPending([]);
-    setSending(false);
-    props.onCancelReply();
-  }, [props.sentCount]);
 
   useEffect(() => {
     if (replyTo) textarea.current?.focus();
@@ -172,7 +162,7 @@ export function Composer(props: Props) {
 
   const send = () => {
     const typed = text.trim();
-    if ((!typed && pending.length === 0) || sending) return;
+    if (!typed && pending.length === 0) return;
     // Raccourcis « / » : une action locale, ou un message tout prêt pour l'agent serveur.
     const slash = typed.toLowerCase();
     if (slash === "/memoire" || slash === "/mémoire") {
@@ -188,20 +178,23 @@ export function Composer(props: Props) {
     const body = slash === "/statut" ? strings.quickStatusMessage : typed;
     // Mentions : les membres dont « @Nom » figure encore dans le texte.
     const mentions = members.filter((member) => body.includes(`@${member.displayName}`)).map((m) => m.userId);
-    setSending(true);
+    // Le message part tout de suite : la zone se vide pour le suivant, et le fil montre son état.
     post({
       type: "send",
+      clientId: crypto.randomUUID(),
       body,
       replyToId: replyTo?.id,
       mentions,
-      attachmentIds: pending.map((attachment) => attachment.id),
+      attachments: pending,
     });
+    setText("");
+    setPending([]);
+    props.onCancelReply();
   };
 
-  // Échec de l'envoi : on permet de réessayer. Fichiers prêts : on les ajoute.
+  // Fichiers prêts : on les ajoute au prochain message.
   useEffect(() => {
     const onMessage = (event: MessageEvent<ToWebview>) => {
-      if (event.data.type === "sendResult" && !event.data.ok) setSending(false);
       if (event.data.type === "attached" && event.data.projectId === projectId) {
         const added = event.data.attachments;
         setPending((current) => [...current, ...added]);
@@ -294,8 +287,13 @@ export function Composer(props: Props) {
           type="button"
           className="chip-button"
           onClick={() => {
-            setSending(true);
-            post({ type: "send", body: strings.quickStatusMessage, mentions: [], attachmentIds: [] });
+            post({
+              type: "send",
+              clientId: crypto.randomUUID(),
+              body: strings.quickStatusMessage,
+              mentions: [],
+              attachments: [],
+            });
           }}
         >
           <span className="slash">/</span>
@@ -357,11 +355,15 @@ export function Composer(props: Props) {
             type="button"
             className="send-button"
             onClick={send}
-            disabled={(!text.trim() && pending.length === 0) || sending}
+            disabled={!text.trim() && pending.length === 0}
             title={strings.send}
             aria-label={strings.send}
+            aria-busy={props.sending}
           >
-            <span className="codicon codicon-arrow-up" aria-hidden="true" />
+            <span
+              className={`codicon ${props.sending ? "codicon-loading codicon-modifier-spin" : "codicon-arrow-up"}`}
+              aria-hidden="true"
+            />
           </button>
         </div>
       </div>

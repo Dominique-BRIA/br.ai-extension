@@ -17,13 +17,11 @@ type Snapshot = Extract<ToWebview, { type: "state" }>;
 /** Le panneau : la connexion, puis l'accueil (équipes et projets), puis le projet ouvert. */
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [sentCount, setSentCount] = useState(0);
   const [screen, setScreen] = useState<Screen>("main");
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<ToWebview>) => {
       if (event.data.type === "state") setSnapshot(event.data);
-      if (event.data.type === "sendResult" && event.data.ok) setSentCount((count) => count + 1);
     };
     window.addEventListener("message", onMessage);
     post({ type: "ready" });
@@ -157,7 +155,6 @@ function App() {
         locale={locale}
         logoUri={logoUri}
         connected={connected}
-        sentCount={sentCount}
         unread={unread}
         onScreen={setScreen}
       />

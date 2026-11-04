@@ -2490,3 +2490,56 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
   font-family: var(--vscode-editor-font-family, monospace);
   overflow-wrap: anywhere;
 }
+
+/* État d'un message envoyé, en bas à droite de la bulle : horloge, coche, ou échec. */
+.message-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+
+.message-status .codicon {
+  font-size: 12px;
+}
+
+.message-status.failed {
+  color: var(--bria-danger);
+  opacity: 1;
+}
+
+.message.outgoing .bubble {
+  opacity: 0.85;
+}
+
+.message.outgoing.failed .bubble {
+  opacity: 1;
+  outline: 1px solid var(--bria-danger);
+}
+
+.outgoing-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 0.85em;
+}
+
+.outgoing-actions .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Texte lu par les lecteurs d'écran seulement. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -26,6 +26,11 @@ export interface ChatStrings {
   disconnected: string;
   connect: string;
   showLog: string;
+  messageSending: string;
+  messageSent: string;
+  messageFailed: string;
+  retrySend: string;
+  discardSend: string;
   loadOlder: string;
   loading: string;
   reply: string;
@@ -319,6 +324,16 @@ export interface HomeTeam {
   projects: { id: string; name: string }[];
 }
 
+/** Un message en route : l'horloge tant qu'il part, puis la coche une fois enregistré. */
+export interface OutgoingMessage {
+  clientId: string;
+  body: string;
+  replyTo: Message["replyTo"];
+  attachments: Attachment[];
+  createdAt: string;
+  status: "sending" | "failed";
+}
+
 export interface TeamInvitation {
   code: string;
   expiresAt: string;
@@ -364,6 +379,8 @@ export type ChatViewState =
       members: ChatMember[];
       onlineCount: number;
       messages: Message[];
+      /** Messages du membre partis du panneau, pas encore enregistrés par le serveur. */
+      outgoing: OutgoingMessage[];
       hasMore: boolean;
       loadingOlder: boolean;
       /** Ce que le serveur a noté dans la mémoire à partir de chaque message. */
@@ -434,7 +451,6 @@ export type ToWebview =
   /** Les machines connectées au compte, pour les réglages. */
   | { type: "machines"; machines: MachineSession[] }
   /** Résultat d'un envoi : en cas d'échec, la webview garde le brouillon. */
-  | { type: "sendResult"; ok: boolean }
   /** Fichiers envoyés au serveur, à joindre au prochain message de ce projet. */
   | { type: "attached"; projectId: string; attachments: Attachment[] }
   /** Faire défiler jusqu'à un message et le mettre en évidence. */
@@ -506,7 +522,17 @@ export type FromWebview =
   | { type: "showLog" }
   | { type: "loadOlder" }
   | { type: "refresh" }
-  | { type: "send"; body: string; replyToId?: string; mentions: string[]; attachmentIds: string[] }
+  | {
+      type: "send";
+      /** Identifiant local du message, tant que le serveur ne l'a pas enregistré. */
+      clientId: string;
+      body: string;
+      replyToId?: string;
+      mentions: string[];
+      attachments: Attachment[];
+    }
+  | { type: "retrySend"; clientId: string }
+  | { type: "discardSend"; clientId: string }
   | { type: "attach"; pending: number }
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }

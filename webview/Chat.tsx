@@ -26,7 +26,6 @@ interface Props {
   locale: string;
   logoUri: string;
   connected: boolean;
-  sentCount: number;
   unread: number;
   onScreen(screen: Screen): void;
 }
@@ -71,7 +70,7 @@ function authorInitials(author: MessageAuthor, strings: ChatStrings): string {
 }
 
 /** Le panneau d'un projet : en-tête, l'onglet choisi, puis la navigation du bas. */
-export function Chat({ state, strings, locale, logoUri, connected, sentCount, unread, onScreen }: Props) {
+export function Chat({ state, strings, locale, logoUri, connected, unread, onScreen }: Props) {
   const [tab, setTab] = useState<Tab>("chat");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -101,7 +100,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
     const element = list.current;
     if (!element) return;
     const first = state.messages[0]?.id ?? "";
-    const last = state.messages.at(-1)?.id ?? "";
+    const last = state.outgoing.at(-1)?.clientId ?? state.messages.at(-1)?.id ?? "";
     const before = previous.current;
     const opened = element !== before.element || state.projectId !== before.projectId;
     let nearBottom = before.nearBottom;
@@ -121,7 +120,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
       element,
       projectId: state.projectId,
     };
-  }, [state.messages, state.projectId, tab]);
+  }, [state.messages, state.outgoing, state.projectId, tab]);
 
   // Le fil grandit encore après l'affichage (code coloré, diagrammes, carte d'absence) :
   // tant qu'on est en bas, on y reste.
@@ -322,6 +321,12 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
                         )}
                         {message.body && <Markdown text={message.body} diagramError={strings.diagramError} />}
                         <Attachments attachments={message.attachments} strings={strings} locale={locale} />
+                        {mine && (
+                          <span className="message-status" title={strings.messageSent}>
+                            <span className="codicon codicon-check" aria-hidden="true" />
+                            <span className="sr-only">{strings.messageSent}</span>
+                          </span>
+                        )}
                       </div>
                       <div className="message-actions">
                         <button
@@ -346,6 +351,58 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
                   </Fragment>
                 );
               })}
+
+              {state.outgoing.map((outgoing) => (
+                <article
+                  key={outgoing.clientId}
+                  className={`message mine outgoing${outgoing.status === "failed" ? " failed" : ""}`}
+                >
+                  <div className="bubble">
+                    {outgoing.replyTo && (
+                      <span className="quoted">
+                        <span className="quoted-author">
+                          <span className="codicon codicon-reply" aria-hidden="true" />
+                          {authorName(outgoing.replyTo.author, strings, state.myUserId)}
+                        </span>
+                        <span className="quoted-text">{outgoing.replyTo.excerpt}</span>
+                      </span>
+                    )}
+                    {outgoing.body && <Markdown text={outgoing.body} diagramError={strings.diagramError} />}
+                    <Attachments attachments={outgoing.attachments} strings={strings} locale={locale} />
+                    {outgoing.status === "sending" ? (
+                      <span className="message-status" title={strings.messageSending}>
+                        <span className="codicon codicon-clock" aria-hidden="true" />
+                        <span className="sr-only">{strings.messageSending}</span>
+                      </span>
+                    ) : (
+                      <span className="message-status failed">
+                        <span className="codicon codicon-error" aria-hidden="true" />
+                        {strings.messageFailed}
+                      </span>
+                    )}
+                  </div>
+                  {outgoing.status === "failed" && (
+                    <div className="outgoing-actions">
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => post({ type: "retrySend", clientId: outgoing.clientId })}
+                      >
+                        <span className="codicon codicon-refresh" aria-hidden="true" />
+                        {strings.retrySend}
+                      </button>
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => post({ type: "discardSend", clientId: outgoing.clientId })}
+                      >
+                        <span className="codicon codicon-trash" aria-hidden="true" />
+                        {strings.discardSend}
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
             </div>
           </div>
 
@@ -357,7 +414,7 @@ export function Chat({ state, strings, locale, logoUri, connected, sentCount, un
             onCancelReply={() => setReplyTo(null)}
             strings={strings}
             locale={locale}
-            sentCount={sentCount}
+            sending={state.outgoing.some((outgoing) => outgoing.status === "sending")}
             permissionMode={state.permissionMode}
           />
         </>
