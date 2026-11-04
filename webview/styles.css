@@ -752,6 +752,8 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 /* Fil de discussion */
 
 .messages {
+  /* Repère des textes en position absolue (lecteurs d'écran) : ils restent dans le fil. */
+  position: relative;
   flex: 1;
   min-height: 0;
   padding: 12px 14px 16px;
