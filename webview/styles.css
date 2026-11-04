@@ -2545,3 +2545,44 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Passer une commande depuis l'onglet Commandes. */
+.new-order {
+  margin-bottom: 16px;
+}
+
+.new-order-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+}
+
+.new-order-form {
+  padding: 4px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.new-order-brief {
+  padding: 8px 12px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: var(--radius-control);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font: inherit;
+  resize: vertical;
+}
+
+.new-order-brief:focus {
+  border-color: var(--bria-accent);
+  outline: none;
+}
+
+.new-order-form .button-row {
+  margin-top: 12px;
+}

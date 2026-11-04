@@ -90,6 +90,14 @@ export interface ChatStrings {
   showTerminal: string;
   steps: string;
   noOrders: string;
+  newOrder: string;
+  orderTitleLabel: string;
+  orderTitlePlaceholder: string;
+  orderBriefLabel: string;
+  orderBriefPlaceholder: string;
+  placeOrder: string;
+  cancelOrderForm: string;
+  orderMachineHint: string;
   /** « Mode : {0} » */
   mode: string;
   modes: Record<PermissionMode, string>;
@@ -426,6 +434,7 @@ export interface PanelSettings {
 
 /** Extension → webview. */
 export type ToWebview =
+  | { type: "orderCreated"; ok: boolean; message: string }
   | {
       type: "state";
       state: ChatViewState;
@@ -536,6 +545,7 @@ export type FromWebview =
   | { type: "attach"; pending: number }
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
+  | { type: "createOrder"; title: string; brief: string }
   | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" | "relay" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */

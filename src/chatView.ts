@@ -10,6 +10,7 @@ import type {
   MaintenanceStatus,
   MemoryType,
   Message,
+  Order,
   Project,
   RedeemPromoResponse,
   RequestCodeResponse,
@@ -527,6 +528,25 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
             message.status === "open" ? "bria.memory.reopen" : "bria.memory.resolve",
             { kind: "item", item },
           );
+        }
+        return;
+      }
+      case "createOrder": {
+        const projectId = this.#projectId;
+        if (!projectId) return;
+        try {
+          const { order } = await this.#sources.api.post<{ order: Order }>(`/projects/${projectId}/orders`, {
+            title: message.title,
+            brief: message.brief,
+          });
+          await this.#sources.orders.refresh();
+          this.#postRaw({
+            type: "orderCreated",
+            ok: true,
+            message: vscode.l10n.t("Order {0} passed to the cook.", order.number),
+          });
+        } catch (error) {
+          this.#postRaw({ type: "orderCreated", ok: false, message: (error as Error).message });
         }
         return;
       }
@@ -1235,9 +1255,15 @@ function chatStrings(): ChatStrings {
     revertOrder: t("Undo changes"),
     showTerminal: t("Terminal"),
     steps: t("Steps"),
-    noOrders: t(
-      "No order yet. Ask for a deliverable in the chat: the server agent passes the order to the cook.",
-    ),
+    noOrders: t("No order yet. Click New order to ask the cook for a deliverable."),
+    newOrder: t("New order"),
+    orderTitleLabel: t("Title"),
+    orderTitlePlaceholder: t("For example: Contact page"),
+    orderBriefLabel: t("What the cook should do"),
+    orderBriefPlaceholder: t("The expected result, with the useful details"),
+    placeOrder: t("Place the order"),
+    cancelOrderForm: t("Cancel"),
+    orderMachineHint: t("The cook works on the machine of a member who opened the project in VS Code."),
     mode: t("Mode: {0}"),
     modes: { manual: t("Manual"), autoEdit: t("Auto edit"), auto: t("Auto"), plan: t("Plan") },
     modeDetails: {

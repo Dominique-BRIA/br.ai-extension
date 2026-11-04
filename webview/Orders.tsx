@@ -1,6 +1,6 @@
 import type { Order, OrderStatus } from "@br-ia/protocol";
-import { useState } from "react";
-import type { ChatStrings } from "../src/webviewMessages";
+import { type FormEvent, useEffect, useState } from "react";
+import type { ChatStrings, ToWebview } from "../src/webviewMessages";
 import { formatRelative, formatTime, orderFiles } from "./format";
 import { Markdown } from "./Markdown";
 import { post } from "./vscodeApi";
@@ -77,6 +77,8 @@ export function OrdersTab(props: TabProps) {
 
   return (
     <div className="tab-body">
+      <NewOrder strings={strings} />
+
       <div className="section-head">
         <h2 className="section-title">
           <span className="status-dot running" aria-hidden="true" />
@@ -361,6 +363,94 @@ export function OrdersTab(props: TabProps) {
           {strings.changeMode}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Passer une commande directement : un titre et ce que le cuisinier doit faire. */
+function NewOrder({ strings }: { strings: ChatStrings }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [brief, setBrief] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<ToWebview>) => {
+      if (event.data.type !== "orderCreated") return;
+      setBusy(false);
+      setResult({ ok: event.data.ok, message: event.data.message });
+      if (event.data.ok) {
+        setTitle("");
+        setBrief("");
+        setOpen(false);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !brief.trim() || busy) return;
+    setBusy(true);
+    setResult(null);
+    post({ type: "createOrder", title: title.trim(), brief: brief.trim() });
+  };
+
+  return (
+    <div className="new-order">
+      {result && (
+        <p className={result.ok ? "saved" : "auth-error"} role="status">
+          <span className={`codicon codicon-${result.ok ? "check" : "error"}`} aria-hidden="true" />
+          {result.message}
+        </p>
+      )}
+      {open ? (
+        <form className="new-order-form" onSubmit={submit}>
+          <label className="field">
+            <span className="field-label">{strings.orderTitleLabel}</span>
+            <span className="field-box">
+              <input
+                value={title}
+                maxLength={120}
+                placeholder={strings.orderTitlePlaceholder}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </span>
+          </label>
+          <label className="field">
+            <span className="field-label">{strings.orderBriefLabel}</span>
+            <textarea
+              className="new-order-brief"
+              rows={5}
+              maxLength={6000}
+              value={brief}
+              placeholder={strings.orderBriefPlaceholder}
+              onChange={(event) => setBrief(event.target.value)}
+            />
+          </label>
+          <div className="button-row">
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={!title.trim() || !brief.trim() || busy}
+            >
+              {busy && <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />}
+              {strings.placeOrder}
+            </button>
+            <button type="button" className="secondary-button" onClick={() => setOpen(false)}>
+              {strings.cancelOrderForm}
+            </button>
+          </div>
+          <p className="meta">{strings.orderMachineHint}</p>
+        </form>
+      ) : (
+        <button type="button" className="primary-button new-order-button" onClick={() => setOpen(true)}>
+          <span className="codicon codicon-add" aria-hidden="true" />
+          {strings.newOrder}
+        </button>
+      )}
     </div>
   );
 }

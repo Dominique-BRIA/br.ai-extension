@@ -115,7 +115,6 @@
   "New team name": "Nom de la nouvelle équipe",
   "No folder is linked to this project on this machine.": "Aucun dossier n'est associé à ce projet sur cette machine.",
   "No messages yet": "Aucun message pour l'instant",
-  "No order yet. Ask for a deliverable in the chat: the server agent passes the order to the cook.": "Aucune commande pour l'instant. Demandez un livrable dans le chat : l'agent serveur passe la commande au cuisinier.",
   "Not changed": "Non modifié",
   "not completed": "non aboutie",
   "Not connected to the server.": "Non connecté au serveur.",
@@ -442,5 +441,14 @@
   "Sending…": "Envoi…",
   "Sent": "Envoyé",
   "Not sent": "Non envoyé",
-  "Retry": "Réessayer"
+  "Retry": "Réessayer",
+  "No order yet. Click New order to ask the cook for a deliverable.": "Pas encore de commande. Cliquez sur Nouvelle commande pour demander un livrable au cuisinier.",
+  "New order": "Nouvelle commande",
+  "Title": "Titre",
+  "For example: Contact page": "Par exemple : Page de contact",
+  "What the cook should do": "Ce que le cuisinier doit faire",
+  "The expected result, with the useful details": "Le résultat attendu, avec les détails utiles",
+  "Place the order": "Passer la commande",
+  "The cook works on the machine of a member who opened the project in VS Code.": "Le cuisinier travaille sur la machine d'un membre qui a ouvert le projet dans VS Code.",
+  "Order {0} passed to the cook.": "Commande n° {0} passée au cuisinier."
 }

@@ -4,6 +4,7 @@
 
 - L'inscription est ouverte à tous, sans code d'invitation.
 - Le code d'invitation donne des crédits d'IA à l'équipe : le chef le saisit dans l'onglet Équipe.
+- Un bouton « Nouvelle commande » dans l'onglet Commandes : un titre, ce que le cuisinier doit faire, et la commande part, sans passer par @bria.
 - Envoi immédiat : la zone de saisie se vide aussitôt, le message s'affiche avec une horloge puis une coche une fois enregistré, ou « Non envoyé » avec Réessayer. Le bouton d'envoi tourne pendant l'envoi.
 - Nouvelles couleurs des messages : bleu ardoise pour les vôtres, gris anthracite pour ceux des collègues, vert émeraude très sombre pour les IA.
 
