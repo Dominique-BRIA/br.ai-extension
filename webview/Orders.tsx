@@ -49,6 +49,7 @@ interface TabProps {
   permissionMode: string;
   myUserId: string;
   isChef: boolean;
+  cloudAvailable: boolean;
   strings: ChatStrings;
   locale: string;
 }
@@ -77,7 +78,7 @@ export function OrdersTab(props: TabProps) {
 
   return (
     <div className="tab-body">
-      <NewOrder strings={strings} />
+      <NewOrder strings={strings} cloudAvailable={props.cloudAvailable} />
 
       <div className="section-head">
         <h2 className="section-title">
@@ -132,9 +133,7 @@ export function OrdersTab(props: TabProps) {
             <div className="cook-text">
               <div className="cook-name">{strings.cook}</div>
               <div className="cook-machine">
-                {current.machine
-                  ? strings.onMachine.replace("{0}", current.machine.displayName)
-                  : strings.waitingMachine}
+                {current.machine ? machineLabel(current, strings) : strings.waitingMachine}
               </div>
             </div>
             <span className={`pill status ${current.status}`}>
@@ -257,7 +256,7 @@ export function OrdersTab(props: TabProps) {
               ) : (
                 <>
                   <span className="codicon codicon-loading codicon-modifier-spin" aria-hidden="true" />
-                  {order.machine ? strings.onMachine.replace("{0}", order.machine.displayName) : ""}
+                  {order.machine ? machineLabel(order, strings) : ""}
                 </>
               )}
             </div>
@@ -367,11 +366,18 @@ export function OrdersTab(props: TabProps) {
   );
 }
 
+/** Où travaille le cuisinier : la machine d'un membre, ou la machine cloud. */
+function machineLabel(order: Order, strings: ChatStrings): string {
+  if (order.runOn === "cloud") return strings.onCloudMachine;
+  return order.machine ? strings.onMachine.replace("{0}", order.machine.displayName) : "";
+}
+
 /** Passer une commande directement : un titre et ce que le cuisinier doit faire. */
-function NewOrder({ strings }: { strings: ChatStrings }) {
+function NewOrder({ strings, cloudAvailable }: { strings: ChatStrings; cloudAvailable: boolean }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [brief, setBrief] = useState("");
+  const [cloud, setCloud] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -383,6 +389,7 @@ function NewOrder({ strings }: { strings: ChatStrings }) {
       if (event.data.ok) {
         setTitle("");
         setBrief("");
+        setCloud(false);
         setOpen(false);
       }
     };
@@ -395,7 +402,12 @@ function NewOrder({ strings }: { strings: ChatStrings }) {
     if (!title.trim() || !brief.trim() || busy) return;
     setBusy(true);
     setResult(null);
-    post({ type: "createOrder", title: title.trim(), brief: brief.trim() });
+    post({
+      type: "createOrder",
+      title: title.trim(),
+      brief: brief.trim(),
+      runOn: cloud ? "cloud" : "member",
+    });
   };
 
   return (
@@ -443,7 +455,16 @@ function NewOrder({ strings }: { strings: ChatStrings }) {
               {strings.cancelOrderForm}
             </button>
           </div>
-          <p className="meta">{strings.orderMachineHint}</p>
+          {cloudAvailable && (
+            <label className="new-order-cloud">
+              <input type="checkbox" checked={cloud} onChange={(event) => setCloud(event.target.checked)} />
+              <span>
+                {strings.orderOnCloud}
+                <span className="meta">{strings.orderOnCloudHint}</span>
+              </span>
+            </label>
+          )}
+          <p className="meta">{cloud ? strings.orderCloudWait : strings.orderMachineHint}</p>
         </form>
       ) : (
         <button type="button" className="primary-button new-order-button" onClick={() => setOpen(true)}>

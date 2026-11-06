@@ -93,6 +93,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   /** Messages partis du panneau, en attente du serveur (avec de quoi les renvoyer). */
   #outgoing: (OutgoingMessage & { replyToId?: string; mentions: string[] })[] = [];
   #hasMore = false;
+  #cloudAvailable = false;
   #loadingOlder = false;
   #revertable: string[] = [];
   /** Clé d'invitation en cours de chaque équipe dont on est chef, une fois chargée. */
@@ -170,6 +171,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.#post();
     if (reveal) await this.#reveal();
     void this.#checkAbsence();
+    void this.#loadCloud();
     if (projectId) await this.#loadLatest();
   }
 
@@ -538,6 +540,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           const { order } = await this.#sources.api.post<{ order: Order }>(`/projects/${projectId}/orders`, {
             title: message.title,
             brief: message.brief,
+            runOn: message.runOn,
           });
           await this.#sources.orders.refresh();
           this.#postRaw({
@@ -978,6 +981,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
   }
 
+  /** Une machine cloud est-elle en service ? Sans réponse, le choix n'est pas proposé. */
+  async #loadCloud(): Promise<void> {
+    try {
+      const { available } = await this.#sources.api.get<{ available: boolean }>("/cloud");
+      this.#cloudAvailable = available;
+    } catch {
+      this.#cloudAvailable = false;
+    }
+    this.#post();
+  }
+
   /** Ajoute un message s'il n'est pas déjà là (il peut arriver par l'API et par le temps réel). */
   #append(message: Message): void {
     if (this.#messages.some((existing) => existing.id === message.id)) return;
@@ -1041,6 +1055,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       })),
       onlineCount: found.team.members.filter((member) => member.online).length,
       messages: this.#messages,
+      cloudAvailable: this.#cloudAvailable,
       outgoing: this.#outgoing.map(({ replyToId: _replyTo, mentions: _mentions, ...shown }) => shown),
       hasMore: this.#hasMore,
       loadingOlder: this.#loadingOlder,
@@ -1264,6 +1279,14 @@ function chatStrings(): ChatStrings {
     placeOrder: t("Place the order"),
     cancelOrderForm: t("Cancel"),
     orderMachineHint: t("The cook works on the machine of a member who opened the project in VS Code."),
+    orderOnCloud: t("Run on the <br/> cloud machine"),
+    orderOnCloudHint: t(
+      "For a non-sensitive order: the code and the content of the order leave your machines. No secrets, 20 minutes at most.",
+    ),
+    orderCloudWait: t(
+      "It starts as soon as the cloud machine is free. A project with a repository needs the GitHub application.",
+    ),
+    onCloudMachine: t("on the <br/> cloud machine"),
     mode: t("Mode: {0}"),
     modes: { manual: t("Manual"), autoEdit: t("Auto edit"), auto: t("Auto"), plan: t("Plan") },
     modeDetails: {

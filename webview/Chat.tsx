@@ -222,6 +222,7 @@ export function Chat({ state, strings, locale, logoUri, connected, unread, onScr
 
       {tab === "orders" && (
         <OrdersTab
+          cloudAvailable={state.cloudAvailable}
           orders={state.orders}
           revertable={state.revertable}
           folderLinked={state.folderLinked}

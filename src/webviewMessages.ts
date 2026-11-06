@@ -98,6 +98,10 @@ export interface ChatStrings {
   placeOrder: string;
   cancelOrderForm: string;
   orderMachineHint: string;
+  orderOnCloud: string;
+  orderOnCloudHint: string;
+  orderCloudWait: string;
+  onCloudMachine: string;
   /** « Mode : {0} » */
   mode: string;
   modes: Record<PermissionMode, string>;
@@ -387,6 +391,8 @@ export type ChatViewState =
       members: ChatMember[];
       onlineCount: number;
       messages: Message[];
+      /** Une machine cloud est en service : le formulaire de commande propose ce choix. */
+      cloudAvailable: boolean;
       /** Messages du membre partis du panneau, pas encore enregistrés par le serveur. */
       outgoing: OutgoingMessage[];
       hasMore: boolean;
@@ -545,7 +551,7 @@ export type FromWebview =
   | { type: "attach"; pending: number }
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
-  | { type: "createOrder"; title: string; brief: string }
+  | { type: "createOrder"; title: string; brief: string; runOn: "member" | "cloud" }
   | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" | "relay" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */

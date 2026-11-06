@@ -2586,3 +2586,14 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 .new-order-form .button-row {
   margin-top: 12px;
 }
+
+.new-order-cloud {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.new-order-cloud .meta {
+  display: block;
+}
