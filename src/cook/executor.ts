@@ -102,6 +102,7 @@ export class CookExecutor implements vscode.Disposable {
     this.#busyOrder = undefined;
     this.#onDidChangeBusy.fire(undefined);
     this.proposals.rejectAll();
+    this.terminal.orderFinished();
   }
 
   async #run(orderId: string, projectId: string, tool: string, rawInput: unknown): Promise<Outcome> {
@@ -306,7 +307,7 @@ export class CookExecutor implements vscode.Disposable {
       if (answer !== run) return refused("Commande refusée par le membre.");
     }
     if (vscode.workspace.getConfiguration("bria").get<boolean>("showCookTerminal", true))
-      this.terminal.show();
+      this.terminal.showForWork();
     this.terminal.commandStarted(command, root);
     const outcome = await runShell(command, root, timeoutSeconds * 1000, (chunk) =>
       this.terminal.output(chunk),

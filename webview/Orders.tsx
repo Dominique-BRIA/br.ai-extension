@@ -59,6 +59,8 @@ export function OrdersTab(props: TabProps) {
   const { strings, locale } = props;
   const [filter, setFilter] = useState<"all" | "running" | "done">("all");
   const [open, setOpen] = useState<string | null>(null);
+  const [following, setFollowing] = useState<string | null>(null);
+  const [followUp, setFollowUp] = useState("");
   const current = activeOrder(props.orders);
   const active = props.orders.filter((order) => order.status === "running" || order.status === "pending");
   const finished = props.orders.filter((order) => FINISHED.includes(order.status));
@@ -71,6 +73,8 @@ export function OrdersTab(props: TabProps) {
     order.status === "done" && order.commit && !order.pushed && order.machine?.userId === props.myUserId;
   const canValidate = (order: Order) =>
     order.status === "done" && order.commit && order.pushed && !order.merged && isMine(order);
+
+  const canFollowUp = (order: Order) => !order.merged;
 
   const canStop = (order: Order) =>
     (order.status === "pending" || order.status === "running") &&
@@ -304,6 +308,19 @@ export function OrdersTab(props: TabProps) {
                   {strings.revertOrder}
                 </button>
               )}
+              {canFollowUp(order) && (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => {
+                    setFollowing(following === order.id ? null : order.id);
+                    setFollowUp("");
+                  }}
+                >
+                  <span className="codicon codicon-comment-discussion" aria-hidden="true" />
+                  {strings.followUpOrder}
+                </button>
+              )}
               {canStop(order) && order.id !== current?.id && (
                 <button
                   type="button"
@@ -324,6 +341,34 @@ export function OrdersTab(props: TabProps) {
                 {strings.details}
               </button>
             </div>
+
+            {following === order.id && (
+              <form
+                className="new-order-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!followUp.trim()) return;
+                  post({ type: "followUpOrder", orderId: order.id, brief: followUp.trim() });
+                  setFollowing(null);
+                  setFollowUp("");
+                }}
+              >
+                <textarea
+                  className="new-order-brief"
+                  rows={3}
+                  maxLength={6000}
+                  aria-label={strings.followUpOrder}
+                  placeholder={strings.followUpPlaceholder}
+                  value={followUp}
+                  onChange={(event) => setFollowUp(event.target.value)}
+                />
+                <div className="button-row">
+                  <button type="submit" className="primary-button" disabled={!followUp.trim()}>
+                    {strings.sendFollowUp}
+                  </button>
+                </div>
+              </form>
+            )}
 
             {expanded && (
               <div className="order-details">

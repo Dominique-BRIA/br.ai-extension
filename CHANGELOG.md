@@ -4,6 +4,9 @@
 
 - L'inscription est ouverte à tous, sans code d'invitation.
 - Le code d'invitation donne des crédits d'IA à l'équipe : le chef le saisit dans l'onglet Équipe.
+- « Demander une suite » continue une commande au lieu d'en créer une nouvelle ; le serveur reconnaît aussi les suites demandées dans le chat.
+- Le cuisinier vérifie son travail avant de terminer, et le bilan signale ce qui n'a pas pu l'être.
+- Le terminal du cuisinier ne se rouvre plus tout seul quand vous l'avez fermé.
 - Une commande non sensible peut s'exécuter sur la machine cloud de <br/>, sans machine allumée chez un membre : chaque projet y a son espace, et le résultat arrive en .zip à télécharger.
 - Un bouton « Nouvelle commande » dans l'onglet Commandes : un titre, ce que le cuisinier doit faire, et la commande part, sans passer par @bria.
 - Envoi immédiat : la zone de saisie se vide aussitôt, le message s'affiche avec une horloge puis une coche une fois enregistré, ou « Non envoyé » avec Réessayer. Le bouton d'envoi tourne pendant l'envoi.

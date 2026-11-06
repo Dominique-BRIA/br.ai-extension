@@ -9,6 +9,8 @@ export class CookTerminal implements vscode.Disposable {
   readonly #writeEmitter = new vscode.EventEmitter<string>();
   #terminal: vscode.Terminal | undefined;
   #open = false;
+  /** Le membre l'a fermé : il ne se rouvre plus seul pendant cette commande. */
+  #closedByMember = false;
   /** Ce qui a été écrit avant l'ouverture, rejoué à l'ouverture. */
   #backlog = "";
   readonly #subscription: vscode.Disposable;
@@ -18,12 +20,24 @@ export class CookTerminal implements vscode.Disposable {
       if (terminal === this.#terminal) {
         this.#terminal = undefined;
         this.#open = false;
+        this.#closedByMember = true;
       }
     });
   }
 
-  /** Affiche le terminal, sans lui donner le focus. */
+  /** Affichage automatique pendant le travail : respecte le choix du membre qui l'a fermé. */
+  showForWork(): void {
+    if (!this.#closedByMember) this.show();
+  }
+
+  /** La commande est finie : la suivante pourra de nouveau l'afficher. */
+  orderFinished(): void {
+    this.#closedByMember = false;
+  }
+
+  /** Affiche le terminal à la demande du membre, sans lui donner le focus par défaut. */
   show(preserveFocus = true): void {
+    this.#closedByMember = false;
     if (!this.#terminal) {
       const pty: vscode.Pseudoterminal = {
         onDidWrite: this.#writeEmitter.event,

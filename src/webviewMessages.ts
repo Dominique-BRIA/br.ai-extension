@@ -98,6 +98,9 @@ export interface ChatStrings {
   placeOrder: string;
   cancelOrderForm: string;
   orderMachineHint: string;
+  followUpOrder: string;
+  followUpPlaceholder: string;
+  sendFollowUp: string;
   orderOnCloud: string;
   orderOnCloudHint: string;
   orderCloudWait: string;
@@ -552,6 +555,7 @@ export type FromWebview =
   | { type: "openAttachment"; attachment: Attachment; save: boolean }
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
   | { type: "createOrder"; title: string; brief: string; runOn: "member" | "cloud" }
+  | { type: "followUpOrder"; orderId: string; brief: string }
   | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" | "relay" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */

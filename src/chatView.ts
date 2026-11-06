@@ -533,6 +533,25 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         }
         return;
       }
+      case "followUpOrder": {
+        try {
+          const { order } = await this.#sources.api.post<{ order: Order }>(
+            `/orders/${message.orderId}/follow-up`,
+            {
+              brief: message.brief,
+            },
+          );
+          await this.#sources.orders.refresh();
+          this.#postRaw({
+            type: "orderCreated",
+            ok: true,
+            message: vscode.l10n.t("Order {0} continues.", order.number),
+          });
+        } catch (error) {
+          this.#postRaw({ type: "orderCreated", ok: false, message: (error as Error).message });
+        }
+        return;
+      }
       case "createOrder": {
         const projectId = this.#projectId;
         if (!projectId) return;
@@ -1272,6 +1291,9 @@ function chatStrings(): ChatStrings {
     steps: t("Steps"),
     noOrders: t("No order yet. Click New order to ask the cook for a deliverable."),
     newOrder: t("New order"),
+    followUpOrder: t("Ask for a follow-up"),
+    followUpPlaceholder: t("What to add or fix on this order"),
+    sendFollowUp: t("Send"),
     orderTitleLabel: t("Title"),
     orderTitlePlaceholder: t("For example: Contact page"),
     orderBriefLabel: t("What the cook should do"),

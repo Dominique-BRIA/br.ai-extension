@@ -454,5 +454,8 @@
   "Run on the <br/> cloud machine": "Exécuter sur la machine cloud de <br/>",
   "on the <br/> cloud machine": "sur la machine cloud de <br/>",
   "For a non-sensitive order, with no computer on: the work stays in the project space, and the result arrives as a .zip to download. 20 minutes at most.": "Pour une commande non sensible, sans ordinateur allumé : le travail reste dans l'espace du projet, et le résultat arrive en .zip à télécharger. 20 minutes au plus.",
-  "It starts as soon as the cloud machine is free.": "Elle démarre dès que la machine cloud est libre."
+  "It starts as soon as the cloud machine is free.": "Elle démarre dès que la machine cloud est libre.",
+  "Ask for a follow-up": "Demander une suite",
+  "What to add or fix on this order": "Ce qu'il faut ajouter ou corriger sur cette commande",
+  "Order {0} continues.": "La commande n° {0} continue."
 }
