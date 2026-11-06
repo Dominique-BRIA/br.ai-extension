@@ -1281,11 +1281,9 @@ function chatStrings(): ChatStrings {
     orderMachineHint: t("The cook works on the machine of a member who opened the project in VS Code."),
     orderOnCloud: t("Run on the <br/> cloud machine"),
     orderOnCloudHint: t(
-      "For a non-sensitive order: the code and the content of the order leave your machines. No secrets, 20 minutes at most.",
+      "For a non-sensitive order, with no computer on: the work stays in the project space, and the result arrives as a .zip to download. 20 minutes at most.",
     ),
-    orderCloudWait: t(
-      "It starts as soon as the cloud machine is free. A project with a repository needs the GitHub application.",
-    ),
+    orderCloudWait: t("It starts as soon as the cloud machine is free."),
     onCloudMachine: t("on the <br/> cloud machine"),
     mode: t("Mode: {0}"),
     modes: { manual: t("Manual"), autoEdit: t("Auto edit"), auto: t("Auto"), plan: t("Plan") },

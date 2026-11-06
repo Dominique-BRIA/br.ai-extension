@@ -452,7 +452,7 @@
   "The cook works on the machine of a member who opened the project in VS Code.": "Le cuisinier travaille sur la machine d'un membre qui a ouvert le projet dans VS Code.",
   "Order {0} passed to the cook.": "Commande n° {0} passée au cuisinier.",
   "Run on the <br/> cloud machine": "Exécuter sur la machine cloud de <br/>",
-  "For a non-sensitive order: the code and the content of the order leave your machines. No secrets, 20 minutes at most.": "Pour une commande non sensible : le code et le contenu de la commande quittent vos machines. Sans secrets, 20 minutes au plus.",
-  "It starts as soon as the cloud machine is free. A project with a repository needs the GitHub application.": "Elle démarre dès que la machine cloud est libre. Un projet avec un dépôt a besoin de l'application GitHub.",
-  "on the <br/> cloud machine": "sur la machine cloud de <br/>"
+  "on the <br/> cloud machine": "sur la machine cloud de <br/>",
+  "For a non-sensitive order, with no computer on: the work stays in the project space, and the result arrives as a .zip to download. 20 minutes at most.": "Pour une commande non sensible, sans ordinateur allumé : le travail reste dans l'espace du projet, et le résultat arrive en .zip à télécharger. 20 minutes au plus.",
+  "It starts as soon as the cloud machine is free.": "Elle démarre dès que la machine cloud est libre."
 }
