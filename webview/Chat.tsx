@@ -3,11 +3,12 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CatchUp, ChatStrings, ChatViewState, ToWebview } from "../src/webviewMessages";
 import { Attachments } from "./Attachments";
 import { Composer } from "./Composer";
+import { FilesTab } from "./FilesTab";
 import { authorName, continuesPrevious, formatDay, formatTime, initials, sameDay } from "./format";
 import { BottomNav, Header, type Screen, type Tab } from "./Header";
 import { Markdown } from "./Markdown";
 import { MemoryTab } from "./MemoryTab";
-import { activeOrder, OrderPill, OrdersTab } from "./Orders";
+import { activeOrder, OrderDetails, OrderPill, OrdersTab } from "./Orders";
 import { TeamTab } from "./TeamTab";
 import { post } from "./vscodeApi";
 
@@ -89,6 +90,7 @@ export function Chat({ state, strings, locale, logoUri, connected, unread, onScr
     chat: strings.tabChat,
     memory: strings.tabMemory,
     orders: strings.tabOrders,
+    files: strings.tabFiles,
     team: strings.tabTeam,
   };
 
@@ -220,6 +222,15 @@ export function Chat({ state, strings, locale, logoUri, connected, unread, onScr
         />
       )}
 
+      {tab === "files" && (
+        <FilesTab
+          projectId={state.projectId}
+          messageCount={state.messages.length}
+          strings={strings}
+          locale={locale}
+        />
+      )}
+
       {tab === "orders" && (
         <OrdersTab
           cloudAvailable={state.cloudAvailable}
@@ -266,6 +277,14 @@ export function Chat({ state, strings, locale, logoUri, connected, unread, onScr
                 const mine = message.author.kind === "member" && message.author.userId === state.myUserId;
                 const agent = message.author.kind === "serveur" || message.author.kind === "cuisinier";
                 const mentionsMe = message.mentions.includes(state.myUserId);
+                // Le message où le cuisinier prend la commande : ses étapes sont consultables dessous.
+                const taken =
+                  message.author.kind === "cuisinier"
+                    ? /^Je (?:commence|reprends) la \*\*commande n° (\d+)\*\*/.exec(message.body)
+                    : null;
+                const takenOrder = taken
+                  ? state.orders.find((order) => order.number === Number(taken[1]))
+                  : undefined;
                 const classes = [
                   "message",
                   mine ? "mine" : "theirs",
@@ -329,6 +348,7 @@ export function Chat({ state, strings, locale, logoUri, connected, unread, onScr
                           </span>
                         )}
                       </div>
+                      {takenOrder && <OrderDetails order={takenOrder} strings={strings} locale={locale} />}
                       <div className="message-actions">
                         <button
                           type="button"

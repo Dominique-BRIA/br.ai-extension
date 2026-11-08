@@ -1,7 +1,7 @@
 import type { ChatStrings } from "../src/webviewMessages";
 import { post } from "./vscodeApi";
 
-export type Tab = "chat" | "memory" | "orders" | "team";
+export type Tab = "chat" | "memory" | "orders" | "files" | "team";
 
 /** Écran affiché par-dessus l'accueil ou le projet. */
 export type Screen = "main" | "notifications" | "settings" | "vault";
@@ -127,12 +127,13 @@ interface NavProps {
   strings: ChatStrings;
 }
 
-/** Navigation en bas du panneau : Chat, Mémoire, Commandes, Équipe. */
+/** Navigation en bas du panneau : Chat, Mémoire, Commandes, Fichiers, Équipe. */
 export function BottomNav({ tab, onTab, openMemory, ordersSignal, strings }: NavProps) {
   const items: { id: Tab; label: string; icon: string }[] = [
     { id: "chat", label: strings.tabChat, icon: "comment-discussion" },
     { id: "memory", label: strings.tabMemory, icon: "book" },
     { id: "orders", label: strings.tabOrders, icon: "terminal" },
+    { id: "files", label: strings.tabFiles, icon: "files" },
     { id: "team", label: strings.tabTeam, icon: "organization" },
   ];
   return (

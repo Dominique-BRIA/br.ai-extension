@@ -63,6 +63,16 @@ export class Api {
     return new Uint8Array(await response.arrayBuffer());
   }
 
+  /** Télécharge un fichier contenu dans une pièce jointe .zip. */
+  async downloadZipEntry(attachmentId: string, path: string): Promise<Uint8Array> {
+    const response = await this.#fetch(
+      "GET",
+      `/attachments/${attachmentId}/files/content?path=${encodeURIComponent(path)}`,
+      { headers: {} },
+    );
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   /** Appelle le serveur et transforme toute réponse d'erreur en ApiRequestError. */
   async #fetch(method: Method, path: string, init: { headers: Record<string, string>; body?: BodyInit }) {
     const token = this.getToken();

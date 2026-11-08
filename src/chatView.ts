@@ -12,6 +12,7 @@ import type {
   Message,
   Order,
   Project,
+  ProjectFilesResponse,
   RedeemPromoResponse,
   RequestCodeResponse,
   SecretLogResponse,
@@ -22,10 +23,11 @@ import type {
   TeamUsage,
   User,
   VerifyCodeResponse,
+  ZipEntriesResponse,
 } from "@br-ia/protocol";
 import * as vscode from "vscode";
 import { type Api, ApiRequestError } from "./api";
-import { openAttachment, pickAndUpload } from "./attachments";
+import { openAttachment, openZipEntry, pickAndUpload } from "./attachments";
 import type { Connection } from "./connection";
 import type { Checkpoints } from "./cook/checkpoints";
 import { ensureGitignored, mergeEnv } from "./cook/envFile";
@@ -533,6 +535,31 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         }
         return;
       }
+      case "loadFiles": {
+        const projectId = this.#projectId;
+        if (!projectId) return;
+        const answer = await this.#sources.api
+          .get<ProjectFilesResponse>(`/projects/${projectId}/files`)
+          .catch(() => null);
+        this.#postRaw({ type: "files", projectId, files: answer?.files ?? null });
+        return;
+      }
+      case "loadZipEntries": {
+        const answer = await this.#sources.api
+          .get<ZipEntriesResponse>(`/attachments/${message.attachmentId}/files`)
+          .catch(() => null);
+        this.#postRaw({
+          type: "zipEntries",
+          attachmentId: message.attachmentId,
+          entries: answer?.entries ?? null,
+        });
+        return;
+      }
+      case "openZipEntry":
+        await openZipEntry(this.#sources.api, message.attachmentId, message.path, message.save).catch(
+          (error) => this.#reportError(error),
+        );
+        return;
       case "followUpOrder": {
         try {
           const { order } = await this.#sources.api.post<{ order: Order }>(
@@ -1258,6 +1285,14 @@ function chatStrings(): ChatStrings {
     tabChat: t("Chat"),
     tabMemory: t("Memory"),
     tabOrders: t("Orders"),
+    tabFiles: t("Files"),
+    filesTitle: t("Files"),
+    filesSubtitle: t("What the cook created and what was sent in the chat."),
+    filesEmpty: t("Files created by the cook and sent in the chat will appear here."),
+    filesError: t("The files could not be loaded."),
+    showContent: t("Show content"),
+    openItem: t("Open"),
+    theCook: t("The cook"),
     order: t("Order {0}"),
     orderStatus: {
       pending: t("waiting"),

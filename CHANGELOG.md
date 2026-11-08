@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.6.2
+
+- Sous le message où le cuisinier prend une commande, « Détails » montre ce qu'il est en train de faire.
+- Un onglet Fichiers rassemble ce que le cuisinier a créé et ce qui a été envoyé dans le chat ; le contenu d'un .zip s'y parcourt fichier par fichier.
+
 ## 0.6.1
 
 - L'inscription est ouverte à tous, sans code d'invitation.

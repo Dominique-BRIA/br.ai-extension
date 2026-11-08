@@ -457,5 +457,10 @@
   "It starts as soon as the cloud machine is free.": "Elle démarre dès que la machine cloud est libre.",
   "Ask for a follow-up": "Demander une suite",
   "What to add or fix on this order": "Ce qu'il faut ajouter ou corriger sur cette commande",
-  "Order {0} continues.": "La commande n° {0} continue."
+  "Order {0} continues.": "La commande n° {0} continue.",
+  "Files": "Fichiers",
+  "What the cook created and what was sent in the chat.": "Ce que le cuisinier a créé et ce qui a été envoyé dans le chat.",
+  "Files created by the cook and sent in the chat will appear here.": "Les fichiers créés par le cuisinier et ceux envoyés dans le chat apparaîtront ici.",
+  "The files could not be loaded.": "Impossible de charger les fichiers.",
+  "Show content": "Voir le contenu"
 }

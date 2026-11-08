@@ -2597,3 +2597,73 @@ body.vscode-high-contrast-light .auth-hero .logo-light {
 .new-order-cloud .meta {
   display: block;
 }
+
+/* Détails d'une commande sous le message du cuisinier */
+.message-order {
+  margin-top: 4px;
+  max-width: 100%;
+}
+
+.message-order-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-order-steps {
+  max-height: 260px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Espace Fichiers */
+.file-list,
+.file-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-item {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.file-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.file-meta {
+  margin-top: 2px;
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+
+.file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.file-entries {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.file-entry-name {
+  display: block;
+  overflow-wrap: anywhere;
+}

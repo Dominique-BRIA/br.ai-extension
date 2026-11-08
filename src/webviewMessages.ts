@@ -10,10 +10,12 @@ import type {
   Notification,
   Order,
   OrderStatus,
+  ProjectFile,
   ProjectRepo,
   SecretLogResponse,
   SecretsResponse,
   TeamUsage,
+  ZipEntriesResponse,
 } from "@br-ia/protocol";
 import type { ConnectionState } from "./connection";
 import type { PermissionMode } from "./cook/executor";
@@ -62,6 +64,14 @@ export interface ChatStrings {
   tabChat: string;
   tabMemory: string;
   tabOrders: string;
+  tabFiles: string;
+  filesTitle: string;
+  filesSubtitle: string;
+  filesEmpty: string;
+  filesError: string;
+  showContent: string;
+  openItem: string;
+  theCook: string;
   /** « Commande n° {0} » */
   order: string;
   orderStatus: Record<OrderStatus, string>;
@@ -444,6 +454,9 @@ export interface PanelSettings {
 /** Extension → webview. */
 export type ToWebview =
   | { type: "orderCreated"; ok: boolean; message: string }
+  /** Les fichiers du projet ; `null` si le serveur n'a pas répondu. */
+  | { type: "files"; projectId: string; files: ProjectFile[] | null }
+  | { type: "zipEntries"; attachmentId: string; entries: ZipEntriesResponse["entries"] | null }
   | {
       type: "state";
       state: ChatViewState;
@@ -556,6 +569,9 @@ export type FromWebview =
   | { type: "memoryStatus"; itemId: string; status: MemoryStatus }
   | { type: "createOrder"; title: string; brief: string; runOn: "member" | "cloud" }
   | { type: "followUpOrder"; orderId: string; brief: string }
+  | { type: "loadFiles" }
+  | { type: "loadZipEntries"; attachmentId: string }
+  | { type: "openZipEntry"; attachmentId: string; path: string; save: boolean }
   | { type: "orderAction"; orderId: string; action: "stop" | "revert" | "push" | "validate" | "relay" }
   | { type: "command"; command: WebviewCommand }
   /** Ouvrir un fichier du projet sur cette machine (chemin relatif au dossier associé). */

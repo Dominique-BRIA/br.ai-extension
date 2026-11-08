@@ -21,6 +21,47 @@ export function activeOrder(orders: Order[]): Order | undefined {
   );
 }
 
+interface OrderDetailsProps {
+  order: Order;
+  strings: ChatStrings;
+  locale: string;
+}
+
+function OrderSteps({ order, locale }: { order: Order; locale: string }) {
+  return (
+    <ol className="steps">
+      {[...order.steps].reverse().map((step) => (
+        <li key={`${step.at}-${step.text}`} className={step.kind}>
+          <span className={`codicon codicon-${STEP_ICONS[step.kind]}`} aria-hidden="true" />
+          <span className="step-text">{step.text}</span>
+          <time dateTime={step.at}>{formatTime(step.at, locale)}</time>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Sous le message du cuisinier : ce qu'il est en train de faire, comme dans l'onglet Commandes. */
+export function OrderDetails({ order, strings, locale }: OrderDetailsProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="message-order">
+      <div className="message-order-head">
+        <button type="button" className="ghost-button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span className={`codicon codicon-chevron-${open ? "up" : "down"}`} aria-hidden="true" />
+          {strings.details}
+        </button>
+        <span className={`pill status ${order.status}`}>{strings.orderStatus[order.status]}</span>
+      </div>
+      {open && (
+        <div className="message-order-steps">
+          <OrderSteps order={order} locale={locale} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** « CMD-003 » */
 export const orderCode = (order: Order) => `CMD-${String(order.number).padStart(3, "0")}`;
 
@@ -380,15 +421,7 @@ export function OrdersTab(props: TabProps) {
                     <Markdown text={order.handoffNote} diagramError={strings.diagramError} />
                   </>
                 )}
-                <ol className="steps">
-                  {[...order.steps].reverse().map((step) => (
-                    <li key={`${step.at}-${step.text}`} className={step.kind}>
-                      <span className={`codicon codicon-${STEP_ICONS[step.kind]}`} aria-hidden="true" />
-                      <span className="step-text">{step.text}</span>
-                      <time dateTime={step.at}>{formatTime(step.at, locale)}</time>
-                    </li>
-                  ))}
-                </ol>
+                <OrderSteps order={order} locale={locale} />
               </div>
             )}
           </article>
