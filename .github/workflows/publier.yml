@@ -1,11 +1,15 @@
 name: Publier l'extension
 
-# À la demande (onglet Actions → Run workflow), ou en poussant une étiquette de version (v0.5.1).
+# Automatique quand package.json change sur main : une version déjà publiée est ignorée, seul un
+# nouveau numéro part donc. Aussi à la demande (onglet Actions → Run workflow) ou par une étiquette
+# de version (v0.5.1).
 # Construit le .vsix, puis le publie sur chaque place de marché dont le secret est défini :
 # VSCE_PAT pour le Marketplace de VS Code, OVSX_PAT pour Open VSX (Cursor, Windsurf…).
 on:
   workflow_dispatch:
   push:
+    branches: [main]
+    paths: [package.json]
     tags: ["v*"]
 
 jobs:
