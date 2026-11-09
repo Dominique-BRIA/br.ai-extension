@@ -3,8 +3,9 @@ name: Publier l'extension
 # Automatique quand package.json change sur main : une version déjà publiée est ignorée, seul un
 # nouveau numéro part donc. Aussi à la demande (onglet Actions → Run workflow) ou par une étiquette
 # de version (v0.5.1).
-# Construit le .vsix, puis le publie sur chaque place de marché dont le secret est défini :
-# VSCE_PAT pour le Marketplace de VS Code, OVSX_PAT pour Open VSX (Cursor, Windsurf…).
+# Construit le .vsix, puis le publie sur Open VSX (Cursor, Windsurf…) si le secret OVSX_PAT est
+# défini, et sur le Marketplace de VS Code par Trusted Publishing : aucune clé à garder, une règle
+# de confiance créée sur le Marketplace désigne ce dépôt et ce fichier.
 on:
   workflow_dispatch:
   push:
@@ -15,8 +16,10 @@ on:
 jobs:
   publier:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
-      VSCE_PAT: ${{ secrets.VSCE_PAT }}
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
       # Le protocole partagé vient du dépôt backend, attendu dans ../backend.
@@ -61,11 +64,6 @@ jobs:
           name: br-ia-vsix
           path: extension/br-ia.vsix
 
-      - name: Publier sur le Marketplace de VS Code
-        if: env.VSCE_PAT != ''
-        working-directory: extension
-        run: npx vsce publish --packagePath br-ia.vsix --skip-duplicate
-
       - name: Publier sur Open VSX
         if: env.OVSX_PAT != ''
         working-directory: extension
@@ -73,3 +71,8 @@ jobs:
           # L'espace de noms n'est à créer qu'une fois : l'erreur s'il existe déjà est sans effet.
           npx --yes ovsx@1.3.0 create-namespace br-ia || true
           npx --yes ovsx@1.3.0 publish br-ia.vsix --skip-duplicate
+
+      # En dernier : sans règle de confiance, cette étape échoue et le signale, sans bloquer Open VSX.
+      - name: Publier sur le Marketplace de VS Code
+        working-directory: extension
+        run: npx vsce publish --packagePath br-ia.vsix --skip-duplicate --oidc
