@@ -12,10 +12,18 @@ const ICONS: Record<MemoryType | "history", string> = {
   question: "question",
   task: "tasklist",
   compromise: "git-merge",
+  knowledge: "globe",
   history: "history",
 };
 
-const GROUPS: (MemoryType | "history")[] = ["decision", "question", "task", "compromise", "history"];
+const GROUPS: (MemoryType | "history")[] = [
+  "decision",
+  "question",
+  "task",
+  "compromise",
+  "knowledge",
+  "history",
+];
 
 export function groupLabel(group: MemoryType | "history"): string {
   switch (group) {
@@ -27,6 +35,8 @@ export function groupLabel(group: MemoryType | "history"): string {
       return vscode.l10n.t("Tasks");
     case "compromise":
       return vscode.l10n.t("Compromises under discussion");
+    case "knowledge":
+      return vscode.l10n.t("Knowledge");
     case "history":
       return vscode.l10n.t("History");
   }

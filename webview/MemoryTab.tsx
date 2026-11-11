@@ -4,12 +4,13 @@ import { authorName, formatDay, orderFiles } from "./format";
 import { activeOrder } from "./Orders";
 import { post } from "./vscodeApi";
 
-const GROUPS: (MemoryType | "history")[] = ["question", "task", "compromise", "history"];
+const GROUPS: (MemoryType | "history")[] = ["question", "task", "compromise", "knowledge", "history"];
 const ICONS: Record<MemoryType | "history", string> = {
   decision: "law",
   question: "question",
   task: "tasklist",
   compromise: "git-merge",
+  knowledge: "globe",
   history: "history",
 };
 

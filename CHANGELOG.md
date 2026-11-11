@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.6.3
+
+- Mémoire : une rubrique Connaissances rassemble ce que l'IA a appris sur le web, avec ses sources.
+
 ## 0.6.2
 
 - Sous le message où le cuisinier prend une commande, « Détails » montre ce qu'il est en train de faire.

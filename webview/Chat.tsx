@@ -19,6 +19,7 @@ const NOTE_ICONS: Record<MemoryType, string> = {
   question: "question",
   task: "tasklist",
   compromise: "git-merge",
+  knowledge: "globe",
 };
 
 interface Props {

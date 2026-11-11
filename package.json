@@ -3,7 +3,7 @@
   "displayName": "br",
   "description": "%description%",
   "icon": "media/logo.png",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "publisher": "br-ia",
   "license": "SEE LICENSE IN LICENSE",

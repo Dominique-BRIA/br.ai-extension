@@ -462,5 +462,7 @@
   "What the cook created and what was sent in the chat.": "Ce que le cuisinier a créé et ce qui a été envoyé dans le chat.",
   "Files created by the cook and sent in the chat will appear here.": "Les fichiers créés par le cuisinier et ceux envoyés dans le chat apparaîtront ici.",
   "The files could not be loaded.": "Impossible de charger les fichiers.",
-  "Show content": "Voir le contenu"
+  "Show content": "Voir le contenu",
+  "Knowledge": "Connaissances",
+  "Knowledge noted in the project memory": "Connaissance notée dans la mémoire du projet"
 }
